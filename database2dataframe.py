@@ -3,8 +3,6 @@
 import sys
 import pandas as pd
 import numpy as np
-import seaborn as sb
-import math as m
 # MATPLOTLIB
 import matplotlib.pyplot as plt
 import MySQLdb
@@ -354,7 +352,7 @@ def db_to_df():
                      'material_group',
                      'temp_cold', 'cooling_rate',
                      'time_sub',
-                     'time_sinter_1', 'temp_sinter_1', 'vf_part_1', 'vf_fluid_1', 'porosity']
+                     'time_sinter_1', 'temp_sinter_1', 'vf_part_1', 'vf_fluid_1', 'porosity', 'pore']
 
     selected_cols.remove('sublimated'), selected_cols.remove('technique')  # 'technique', 'sublimated' only have one value
     data = data[selected_cols]

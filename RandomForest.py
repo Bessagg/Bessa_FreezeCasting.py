@@ -18,10 +18,6 @@ from sklearn.ensemble import RandomForestRegressor
 df = db_to_df().copy()
 min_n_rows = 500
 
-# Only select top 5 most common pore_structures
-pore_structure_filter = df['pore_structure'].value_counts().head(5).axes[0]
-df = df[df['pore_structure'].isin(pore_structure_filter)]
-
 X = df[df.columns.drop('porosity')]
 y = df['porosity']
 

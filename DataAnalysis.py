@@ -160,7 +160,7 @@ kmo_all, kmo_model = calculate_kmo(df_num)
 print(kmo_model)
 
 
-# ########### PCA Analysis
+# ########### PCA Analysis Principal component Analysis
 n_components = 5
 pipeline = Pipeline([('scaling', StandardScaler()), ('pca', PCA(n_components=n_components))])
 pca = PCA(n_components=n_components)

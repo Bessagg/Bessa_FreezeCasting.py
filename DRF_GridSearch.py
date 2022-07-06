@@ -1,30 +1,8 @@
-# Enables inline-plot rendering
-# Utilized to create and work with dataframes
 import datetime
 import sys
-import time
-from IPython.display import Image
 import database2dataframe
-import os
-import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
-import plotly.express as px
-from sklearn.preprocessing import StandardScaler
-from sklearn import preprocessing
-from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import OneHotEncoder
-from sklearn.decomposition import PCA
-from sklearn.manifold import TSNE
-import seaborn as sns
-# command-line arguments
-import sys
-import prince
-import plotly.io as pio
-import subprocess
 from h2o.grid.grid_search import H2OGridSearch
 import datetime
-pio.renderers.default = "browser"
 
 # Analysis with df
 df = database2dataframe.db_to_df().copy()
@@ -47,14 +25,14 @@ valid.frame_id = "Valid"
 test.frame_id = "Test"
 
 grid_params = dict()
-grid_params['ntrees'] = [20, 30, 60]
-grid_params['max_depth'] = [18, 22, 40]
-grid_params['min_rows'] = [10, 20, 40]
-grid_params['nbins'] = [32, 64, 80]
-grid_params['seed'] = [1234]
-grid_params['sample_rate'] = [1, 0.9, 0.6]  # important
-grid_params['col_sample_rate_per_tree'] = [1, 0.9]  # important
-grid_params['stopping_metric'] = ['AUTO', 'deviance', 'custom_increasing']
+grid_params['ntrees'] = [20]
+# grid_params['max_depth'] = [18, 22, 40]
+# grid_params['min_rows'] = [10, 20, 40]
+# grid_params['nbins'] = [32, 64, 80]
+# grid_params['seed'] = [1234]
+# grid_params['sample_rate'] = [1, 0.9, 0.6]  # important
+# grid_params['col_sample_rate_per_tree'] = [1, 0.9]  # important
+# grid_params['stopping_metric'] = ['AUTO', 'deviance', 'custom_increasing']
 
 drf_grid = H2OGridSearch(model=H2ORandomForestEstimator(nfolds=5),
                          hyper_params=grid_params)
@@ -74,11 +52,18 @@ best_model = grid_sorted[0]
 pred_test = best_model.predict(test)
 pred_valid = best_model.predict(valid)
 best_model.show()
-r2, mae = best_model.r2(valid=True), best_model.mae(valid=True)
-r2, mae = "{:.03f}".format(r2), "{:.03f}".format(mae)
-print("R2 and mse", r2, mae)
+
+r2, r2_train = best_model.r2(valid=True), best_model.r2()
+r2, r2_train = "{:.04f}".format(r2), "{:.04f}".format(r2_train)
+
+print(f"R2: train {best_model.r2()} \n valid {best_model.r2(valid=True)} \n "
+      f"diff {best_model.r2() - best_model.r2(valid=True) }")
+
+
+print("R2 and mae", r2, best_model.mae(valid=True))
+
 now = datetime.datetime.now().strftime("%y%m%d%H%M")
-h2o.save_model(best_model, path="temp/best_DRF_model", filename=f"DRF_{r2}_{mae}_{now}", force=True)
+h2o.save_model(best_model, path="temp/best_DRF_model", filename=f"DRF_{r2}_{r2_train}_{now}", force=True)
 
 # com drop top 5 , mae 0.10 validation e 0,108 train
 # com drop, 0,10 e 0.108

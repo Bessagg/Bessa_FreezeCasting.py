@@ -57,11 +57,12 @@ pred_test = best_model.predict(test)
 pred_valid = best_model.predict(valid)
 best_model.show()
 r2, r2_train = best_model.r2(valid=True), best_model.r2()
+r2, r2_train = "{:.04f}".format(r2), "{:.04f}".format(r2_train)
 
 print(f"R2: train {best_model.r2()} \n valid {best_model.r2(valid=True)} \n "
       f"diff {best_model.r2() - best_model.r2(valid=True) }")
 
-r2, r2_train = "{:.04f}".format(r2), "{:.04f}".format(r2_train)
+
 print("R2 and mae", r2, best_model.mae(valid=True))
 best_model.learning_curve_plot()
 now = datetime.datetime.now().strftime("%y%m%d%H%M")
