@@ -1,78 +1,83 @@
 import datetime
 import sys
-import database2dataframe
+
 from h2o.grid.grid_search import H2OGridSearch
+from h2o.estimators import H2ORandomForestEstimator
 import datetime
+import time
+import pickle
+import pandas as pd
 
 # Analysis with df
-df = database2dataframe.db_to_df().copy()
-print("Used columns:", df.columns)
+# import database2dataframe
+# df = database2dataframe.db_to_df().copy()
 
-# pore_structure_filter = df['pore_structure'].value_counts().head(5).axes[0]
-# df = df[df['pore_structure'].isin(pore_structure_filter)]
+df = pd.read_pickle('freeze_casting_df.pkl')
+print("Used columns:", df.columns)
 
 # H20 DRF - Distributed Random Forest
 import h2o
-from h2o.estimators import H2ORandomForestEstimator
-print("Rows:", len(df))
-h2o.init(nthreads=-1)
-# Split the dataset into a train and valid set:
-h2o_data = h2o.H2OFrame(df, destination_frame="CatNum")
+for seed in [6, 18, 25, 34, 42]:
+    start = time.time()
+    h2o.init(nthreads=-1, min_mem_size_GB=50)
 
-train, test, valid = h2o_data.split_frame([0.7, 0.15], seed=1234)
-train.frame_id = "Train"
-valid.frame_id = "Valid"
-test.frame_id = "Test"
+    # Split the dataset into a train and valid set:
+    h2o_data = h2o.H2OFrame(df, destination_frame="CatNum")
 
-grid_params = dict()
-grid_params['ntrees'] = [20]
-# grid_params['max_depth'] = [18, 22, 40]
-# grid_params['min_rows'] = [10, 20, 40]
-# grid_params['nbins'] = [32, 64, 80]
-# grid_params['seed'] = [1234]
-# grid_params['sample_rate'] = [1, 0.9, 0.6]  # important
-# grid_params['col_sample_rate_per_tree'] = [1, 0.9]  # important
-# grid_params['stopping_metric'] = ['AUTO', 'deviance', 'custom_increasing']
+    train, test, valid = h2o_data.split_frame([0.7, 0.15], seed=seed)
+    train.frame_id = "Train"
+    valid.frame_id = "Valid"
+    test.frame_id = "Test"
 
-drf_grid = H2OGridSearch(model=H2ORandomForestEstimator(nfolds=5),
-                         hyper_params=grid_params)
-print("Training")
-X = df[df.columns.drop('porosity')].columns.values.tolist()
-y = "porosity"
-drf_grid.train(x=X,
-               y=y,
-               training_frame=train,
-               validation_frame=valid)
-print("Importance results")
-# drf_grid.show()
-grid_sorted = drf_grid.get_grid(sort_by='r2', decreasing=True)
-print("Getting best model")
-best_model = grid_sorted[0]
+    grid_params = dict()
+    grid_params['ntrees'] = [20, 30, 50, 100]
+    grid_params['max_depth'] = [18, 20, 30]
+    grid_params['min_rows'] = [10, 20, 40]
+    grid_params['nbins'] = [32, 64, 80]
+    grid_params['seed'] = [seed]
+    grid_params['sample_rate'] = [1, 0.98, 0.95]  # important
+    grid_params['col_sample_rate_per_tree'] = [1, 0.95, 0.9]  # important
+    grid_params['stopping_metric'] = ['AUTO']
 
-pred_test = best_model.predict(test)
-pred_valid = best_model.predict(valid)
-best_model.show()
+    drf_grid = H2OGridSearch(model=H2ORandomForestEstimator(),
+                             hyper_params=grid_params)
+    print("Training")
+    X = df[df.columns.drop('porosity')].columns.values.tolist()
+    y = "porosity"
+    drf_grid.train(x=X,
+                   y=y,
+                   training_frame=train,
+                   validation_frame=valid)
+    print("Importance results")
+    # drf_grid.show()
+    grid_sorted = drf_grid.get_grid(sort_by='mean_residual_deviance', decreasing=False)
+    print("Getting best model")
+    best_model = grid_sorted[0]
 
-r2, r2_train = best_model.r2(valid=True), best_model.r2()
-r2, r2_train = "{:.04f}".format(r2), "{:.04f}".format(r2_train)
+    pred_test = best_model.predict(test)
+    pred_valid = best_model.predict(valid)
+    best_model.show()
 
-print(f"R2: train {best_model.r2()} \n valid {best_model.r2(valid=True)} \n "
-      f"diff {best_model.r2() - best_model.r2(valid=True) }")
+    r2, mae = best_model.r2(valid=True), best_model.mae(valid=True)
+    r2, mae = "{:.04f}".format(r2), "{:.04f}".format(mae)
+    mrd = best_model.mean_residual_deviance(valid=True)
+    mrd = "{:.04f}".format(mrd)
 
+    print(f"R2: train {best_model.r2()} \n valid {best_model.r2(valid=True)} \n ")
+    print("R2 and mae", r2, best_model.mae(valid=True))
+    now = datetime.datetime.now().strftime("%y%m%d%H%M")
+    h2o.save_model(best_model, path="temp/best_DRF_model", filename=f"DRF_{seed}_{r2}_{mae}_{mrd}_{now}", force=True)
+    print(best_model.actual_params)
+    h2o.shutdown()
 
-print("R2 and mae", r2, best_model.mae(valid=True))
+    # com drop top 5 , mae 0.10 validation e 0,108 train
+    # com drop, 0,10 e 0.108
+    # sem 0.074 e  0.54R^2  e 0.64 0.67R^2
 
-now = datetime.datetime.now().strftime("%y%m%d%H%M")
-h2o.save_model(best_model, path="temp/best_DRF_model", filename=f"DRF_{r2}_{r2_train}_{now}", force=True)
-
-# com drop top 5 , mae 0.10 validation e 0,108 train
-# com drop, 0,10 e 0.108
-# sem 0.074 e  0.54R^2  e 0.64 0.67R^2
-
-# Without pore_structure:
-# com freezing temp, e direction 0.1088 on valid e 0.116 train
-# com freezing temp: 0.1118 e 0.119
-# sem freezing temp 0.115 e 0.12 train
+    # Without pore_structure:
+    # com freezing temp, e direction 0.1088 on valid e 0.116 train
+    # com freezing temp: 0.1118 e 0.119
+    # sem freezing temp 0.115 e 0.12 train
 
 
 """

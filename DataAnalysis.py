@@ -21,7 +21,7 @@ from matplotlib.ticker import MultipleLocator, FormatStrFormatter
 from pylab import rcParams
 from matplotlib.ticker import AutoMinorLocator
 import scipy.stats as stats
-import statsmodels.api as sm
+# import statsmodels.api as sm
 import plotly.express as px
 from sklearn.preprocessing import StandardScaler
 from sklearn import preprocessing
@@ -33,7 +33,7 @@ from sklearn.manifold import TSNE
 import matplotlib.ticker as ticker
 # For point density plots:
 from scipy.stats import gaussian_kde
-import statsmodels.api as sm
+#import statsmodels.api as sm
 import seaborn as sns
 from scipy.stats import norm
 # command-line arguments

@@ -354,12 +354,11 @@ def db_to_df():
                      'time_sub',
                      'time_sinter_1', 'temp_sinter_1', 'vf_part_1', 'vf_fluid_1', 'porosity', 'pore']
 
-    selected_cols.remove('sublimated'), selected_cols.remove('technique')  # 'technique', 'sublimated' only have one value
+    selected_cols.remove('sublimated'), selected_cols.remove('technique'), selected_cols.remove('pore'),
+    selected_cols.remove('pore_structure'), selected_cols.remove('direction')
+    # 'technique', 'sublimated' only have one value, direction' only have 600 rows. Hence, these columns were dropped.
     data = data[selected_cols]
 
-    # Un-comment if is desired to drop columns
-    data.drop('pore_structure', axis=1, inplace=True)
-    data.drop('direction', axis=1, inplace=True)  # direction' only have 600 rows. Hence, these columns were dropped.
     # data.drop('temp_cold', axis=1, inplace=True)  #  Highest corr with porosity of 14%, sadly only has 545 rows
 
     # Select only rows that porosity is not null

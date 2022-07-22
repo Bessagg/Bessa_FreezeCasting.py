@@ -22,14 +22,15 @@ print("Used columns:", df.columns)
 import h2o
 start = time.time()
 print("Rows:", len(df))
-h2o.init(nthreads=-1, min_mem_size="10g")
+h2o.init(nthreads=-1, min_mem_size="4g")
 # Split the dataset into a train and valid set:
 h2o_data = h2o.H2OFrame(df, destination_frame="CatNum")
-
-train, test, valid = h2o_data.split_frame([0.7, 0.15], seed=1234)
+seed = 25  # 6 18 25 34 42
+train, test, valid = h2o_data.split_frame([0.75, 0.125], seed=seed)
 train.frame_id = "Train"
 valid.frame_id = "Valid"
 test.frame_id = "Test"
+cv = True
 
 grid_params = dict()
 grid_params['hidden'] = [[200, 100, 50, 25, 4]]  # 0.58 e 0.50
@@ -54,28 +55,50 @@ grid_params['hidden'] = [[600, 300, 150]]  # 0.67 e 0.605
 grid_params['hidden'] = [[600, 400, 300]]  # 0.67 e 0.607
 grid_params['hidden'] = [[600, 400]]  # 0.69 e 0.62
 grid_params['hidden'] = [[800, 600, 200]]  # 0.68 0.60
-grid_params['hidden'] = [[1200, 600, 600]]
+grid_params['hidden'] = [[1200, 600, 600]]  # 0.69 e 0.62
+grid_params['hidden'] = [[1200, 600]]  # 0.68 e 0.623
+grid_params['hidden'] = [[1200, 800, 600]]  # 0.7 e 0.63
+grid_params['hidden'] = [[1200, 800, 800]]  # 0.71 e 0.64
+grid_params['hidden'] = [[1600, 800, 400]]  # 0.7494 e 0.667  500 epochs  l1: 5e-06 l2: 5e-07
+grid_params['hidden'] = [[1600, 800, 400, 200]]  # 0.738 e 0.06719
+grid_params['hidden'] = [[2400, 1200, 800, 400]]  # 0.75 e 0.67
+grid_params['hidden'] = [[2400, 1200, 800]]  # 0.759 e 0.666  5e-6 5e-7 / cv 0.612
+grid_params['hidden'] = [[3000, 1500, 750]]  # cv 0.618 e max 0.656 / 860 epochs
+# Dropout had no good results
+# Only L1 had no good results
+# Only l2
+grid_params['hidden'] = [[1600, 800, 400, 200]]  # seed = 6 0.76 e 0.576
+grid_params['hidden'] = [[400, 200, 100]]  # seed=6 0.77 e 0.587
+# L1 & L2
+grid_params['hidden'] = [[400, 200, 100]]  # seed=6 0.76 e 0.577, 0.76 e 0.59
+grid_params['hidden'] = [[400, 200, 100]]  # seed=6 0.76 e 0.577, 0.76 e 0.59
+grid_params['hidden'] = [[64, 32, 16, 4]]  # 0.755 e 0.6133
+grid_params['hidden'] = [[128, 64, 32, 16, 4]]  # 0.77 0.562
+grid_params['hidden'] = [[1600, 800, 400, 200]]  # seed = 6 0.6947 e 0.5830
+grid_params['hidden'] = [[1600, 800, 400, 200]]  # seed = 18 0.7385 e 0.541
+grid_params['hidden'] = [[1600, 800, 400, 200]]  # seed = 25 0.749 e 0.574
+grid_params['hidden'] = [[100, 100, 50]]  # seed = 25 0.749 e 0.574
 
 
 
 
-#
-# # Noteboook
-# grid_params['hidden'] = [[300, 300, 200, 100, 100]]  # 0.579 e 0.51
-# grid_params['hidden'] = [[300, 300]]  #
 
-grid_params['epochs'] = [100, 150]
+#grid_params['hidden'] = [[32, 16, 4]]  #
+
+grid_params['epochs'] = [1000]
 grid_params['activation'] = ['Rectifier']  # 'TanhWithDropout', 'RectifierWithDropout'
 grid_params['tweedie_power'] = [1.2]
 # grid_params['score_interval'] = [5.0, 3.0, 10.0]
-grid_params['l1'] = [0.0001]
-grid_params['l2'] = [0.00001, 0.00005, 0.000005]
-grid_params['rho'] = [0.99, 0.95]
+grid_params['l1'] = [1e-6]  #, 5e-7, 1e-7]
+grid_params['l2'] = [5e-6]  #, 1e-7, 5e-6]
+#grid_params['input_dropout_ratio'] = [0.1, 0.2]
+grid_params['rho'] = [0.95]
 grid_params['loss'] = ['Absolute']  # 'Quadratic', 'Huber'
 grid_params['reproducible'] = [False]  # False
-grid_params['seed'] = [1234]
+grid_params['seed'] = [seed]
+grid_params['stopping_rounds'] = 10
 
-rnn_grid = H2OGridSearch(model=H2ODeepLearningEstimator(standardize=True),
+rnn_grid = H2OGridSearch(model=H2ODeepLearningEstimator(standardize=True, nfolds=5),
                          hyper_params=grid_params)
 print("Training")
 X = df[df.columns.drop('porosity')].columns.values.tolist()
@@ -95,16 +118,16 @@ pred_valid = best_model.predict(valid)
 best_model.show()
 
 r2, r2_train = best_model.r2(valid=True), best_model.r2()
+results = best_model.cross_validation_metrics_summary()
+
 r2, r2_train = "{:.04f}".format(r2), "{:.04f}".format(r2_train)
 
 print(f"R2: train {best_model.r2()} \n valid {best_model.r2(valid=True)} \n "
       f"diff {best_model.r2() - best_model.r2(valid=True) }")
-
-
 print("R2 and mae", r2, best_model.mae(valid=True))
 
 now = datetime.datetime.now().strftime("%y%m%d%H%M")
-h2o.save_model(best_model, path=f"temp/best_RNN_model/RNN_{r2}_{r2_train}_{now}", force=True)
+h2o.save_model(best_model, path=f"temp/best_RNN_model/RNN_{seed}_{r2}_{r2_train}_{now}", force=True)
 
 print("Elapsed {:.04f} minutes".format((time.time() - start)/60))
 print("hidden", best_model.actual_params['hidden'])

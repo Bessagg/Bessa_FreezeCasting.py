@@ -85,6 +85,10 @@ print("Train r^2 score: ", r2_score(y_train, model.predict(X_train)))
 print("Train r^2 score: ", r2_score(y_test, model.predict(X_test)))
 
 import pickle
+import datetime
+now = datetime.datetime.now().strftime("%y%m%d%H%M")
+
+path=f"temp/best_RNN_model/RNN_{r2}_{r2_train}_{now}"
 pkl_filename = "Scit_RF_model.pkl"
 with open(pkl_filename, 'wb') as file:
     pickle.dump(model, file)
