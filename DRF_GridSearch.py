@@ -19,7 +19,7 @@ print("Used columns:", df.columns)
 import h2o
 for seed in [6, 18, 25, 34, 42]:
     start = time.time()
-    h2o.init(nthreads=-1, min_mem_size_GB=50)
+    h2o.init(nthreads=-1, min_mem_size_GB=100)
 
     # Split the dataset into a train and valid set:
     h2o_data = h2o.H2OFrame(df, destination_frame="CatNum")
@@ -30,14 +30,14 @@ for seed in [6, 18, 25, 34, 42]:
     test.frame_id = "Test"
 
     grid_params = dict()
-    grid_params['ntrees'] = [20, 30, 50, 100]
+    grid_params['ntrees'] = [20, 30, 100]
     grid_params['max_depth'] = [18, 20, 30]
     grid_params['min_rows'] = [10, 20, 40]
-    grid_params['nbins'] = [32, 64, 80]
+    grid_params['nbins'] = [32]
     grid_params['seed'] = [seed]
-    grid_params['sample_rate'] = [1, 0.98, 0.95]  # important
-    grid_params['col_sample_rate_per_tree'] = [1, 0.95, 0.9]  # important
-    grid_params['stopping_metric'] = ['AUTO']
+    grid_params['sample_rate'] = [1, 0.98]  # important
+    grid_params['col_sample_rate_per_tree'] = [1, 0.95]  # important
+    # grid_params['stopping_metric'] = ['AUTO']
 
     drf_grid = H2OGridSearch(model=H2ORandomForestEstimator(),
                              hyper_params=grid_params)
@@ -66,7 +66,7 @@ for seed in [6, 18, 25, 34, 42]:
     print(f"R2: train {best_model.r2()} \n valid {best_model.r2(valid=True)} \n ")
     print("R2 and mae", r2, best_model.mae(valid=True))
     now = datetime.datetime.now().strftime("%y%m%d%H%M")
-    h2o.save_model(best_model, path="temp/best_DRF_model", filename=f"DRF_{seed}_{r2}_{mae}_{mrd}_{now}", force=True)
+    h2o.save_model(best_model, path="temp/best_DRF_model", filename=f"DRF_{seed}_{now}_{r2}_{mae}_{mrd}", force=True)
     print(best_model.actual_params)
     h2o.shutdown()
 

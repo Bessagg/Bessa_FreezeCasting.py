@@ -14,7 +14,7 @@ print("Used columns:", df.columns)
 # H20 DRF - Distributed Random Forest
 import h2o
 from h2o.estimators import H2OGradientBoostingEstimator
-for seed in [6, 18, 25, 34, 42]:
+for seed in [18, 25, 34, 42]:
     h2o.init(nthreads=-1, min_mem_size_GB=20)
     # Split the dataset into a train and valid set:
     h2o_data = h2o.H2OFrame(df, destination_frame="CatNum")
@@ -64,7 +64,7 @@ for seed in [6, 18, 25, 34, 42]:
 
     # best_model.learning_curve_plot()
     now = datetime.datetime.now().strftime("%y%m%d%H%M")
-    h2o.save_model(best_model, path="temp/best_GBM_model", filename=f"GBM_{seed}_{r2}_{mae}_{mrd}_{now}", force=True)
+    h2o.save_model(best_model, path="temp/best_GBM_model", filename=f"GBM_{seed}_{now}_{r2}_{mae}_{mrd}", force=True)
     print(best_model.actual_params)
 
 # With temp_cold r2: train 0.799 e valid = 0.609
