@@ -1,53 +1,60 @@
 import database2dataframe
 import datetime
 import time
-df = database2dataframe.db_to_df().copy()
-# df.drop(['temp_cold'], axis=1, inplace=True)
-print("Rows:", len(df))
+import pandas as pd
+# Analysis with df
+# import database2dataframe
+# df = database2dataframe.db_to_df().copy()
+
+df = pd.read_pickle('freeze_casting_df.pkl')
+print("Used columns:", df.columns)
+df.head()
 
 
 import h2o
-h2o.init()
-# Split the dataset into a train and valid set:
-h2o_data = h2o.H2OFrame(df, destination_frame="CatNum")
-train, valid, test = h2o_data.split_frame([0.7, 0.15], seed=1234)
-train.frame_id = "Train"
-valid.frame_id = "Valid"
-test.frame_id = "Test"
-from h2o.automl import H2OAutoML
-import h2o.estimators
-from h2o.estimators.stackedensemble import H2OStackedEnsembleEstimator
-start = time.time()
-aml = H2OAutoML(max_models=50, seed=1234, nfolds=5, stopping_metric='AUTO')
-print("Training")
-X = df[df.columns.drop('porosity')].columns.values.tolist()
-y = "porosity"
-aml.train(x=X, y=y,
-          training_frame=train,
-          validation_frame=valid)
-print("Leaderboard")
-print(aml.leaderboard)
+for seed in [6, 18, 25, 34, 42]:
+    h2o.init()
+    # Split the dataset into a train and valid set:
+    h2o_data = h2o.H2OFrame(df, destination_frame="CatNum")
+    train, valid, test = h2o_data.split_frame([0.7, 0.15], seed=seed)
+    train.frame_id = "Train"
+    valid.frame_id = "Valid"
+    test.frame_id = "Test"
+    from h2o.automl import H2OAutoML
+    import h2o.estimators
+    from h2o.estimators.stackedensemble import H2OStackedEnsembleEstimator
+    start = time.time()
+    aml = H2OAutoML(max_models=50, seed=seed, stopping_metric='AUTO')
+    print("Training")
+    X = df[df.columns.drop('porosity')].columns.values.tolist()
+    y = "porosity"
+    aml.train(x=X, y=y,
+              training_frame=train,
+              validation_frame=valid)
+    print("Leaderboard")
+    print(aml.leaderboard)
+    best_model = aml.get_best_model(criterion="deviance")
+    test_y = aml.leader.predict(test)
+    test_y = test_y.as_data_frame()
 
+    print("Testing best model")
+    print(best_model.model_performance(test))
+    print("Validating")
+    print(best_model.model_performance(valid))
+    print(best_model.show())
 
-best_model = aml.get_best_model()
-test_y = aml.leader.predict(test)
-test_y = test_y.as_data_frame()
+    r2, mae = best_model.r2(valid=True), best_model.mae(valid=True)
+    r2, r2_train = "{:.04f}".format(r2), "{:.04f}".format(mae)
+    mrd = best_model.mean_residual_deviance(valid=True)
+    mrd = "{:.04f}".format(mrd)
 
-print("Testing best model")
-print(best_model.model_performance(test))
-print("Validating")
-print(best_model.model_performance(valid))
-print(best_model.show())
+    print(f"R2: train {best_model.r2()} \n valid {best_model.r2(valid=True)} \n "
+          f"diff {best_model.r2() - best_model.r2(valid=True) }")
 
-r2, r2_train = best_model.r2(valid=True), best_model.r2()
-r2, r2_train = "{:.04f}".format(r2), "{:.04f}".format(r2_train)
-print(f"R2: train {best_model.r2()} \n valid {best_model.r2(valid=True)} \n "
-      f"diff {best_model.r2() - best_model.r2(valid=True) }")
-
-print("R2 and mae", r2, best_model.mae(valid=True))
-now = datetime.datetime.now().strftime("%y%m%d%H%M")
-h2o.save_model(best_model, path="temp/AutoML_model", filename=f"AutoML_{r2}_{r2_train}_{now}", force=True)
-print("Elapsed {:.04f} minutes".format((time.time() - start)/60))
+    print("R2 and mae", r2, best_model.mae(valid=True))
+    now = datetime.datetime.now().strftime("%y%m%d%H%M")
+    h2o.save_model(best_model, path="temp/AutoML_model", filename=f"AutoML_{seed}_{now}_{r2}_{mae}_{mrd}", force=True)
+    print("Elapsed {:.04f} minutes".format((time.time() - start)/60))
 # h2o.save_model(best_model, path="temp/AutoML_model", force=True)
 
 # com filter treino: 0.084    stackedensemble
