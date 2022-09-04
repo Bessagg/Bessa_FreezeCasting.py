@@ -13,13 +13,13 @@ import pandas as pd
 # df = database2dataframe.db_to_df().copy()
 
 df = pd.read_pickle('freeze_casting_df.pkl')
-print("Used columns:", df.columns)
+#print("Used columns:", df.columns)
 
 # H20 DRF - Distributed Random Forest
 import h2o
 for seed in [6, 18, 25, 34, 42]:
     start = time.time()
-    h2o.init(nthreads=-1, min_mem_size_GB=100)
+    h2o.init(nthreads=-1, min_mem_size_GB=10)
 
     # Split the dataset into a train and valid set:
     h2o_data = h2o.H2OFrame(df, destination_frame="CatNum")
@@ -30,13 +30,13 @@ for seed in [6, 18, 25, 34, 42]:
     test.frame_id = "Test"
 
     grid_params = dict()
-    grid_params['ntrees'] = [20, 30, 100]
-    grid_params['max_depth'] = [18, 20, 30]
-    grid_params['min_rows'] = [10, 20, 40]
-    grid_params['nbins'] = [32]
+    grid_params['ntrees'] = [120]   # 120
+    grid_params['max_depth'] = [30]  # 30
+    grid_params['min_rows'] = [10]  # 10
+    grid_params['nbins'] = [32]  # 32
     grid_params['seed'] = [seed]
-    grid_params['sample_rate'] = [1, 0.98]  # important
-    grid_params['col_sample_rate_per_tree'] = [1, 0.95]  # important
+    grid_params['sample_rate'] = [0.95]  # 0.99 important
+    grid_params['col_sample_rate_per_tree'] = [1]  # 1 important
     # grid_params['stopping_metric'] = ['AUTO']
 
     drf_grid = H2OGridSearch(model=H2ORandomForestEstimator(),
@@ -53,22 +53,30 @@ for seed in [6, 18, 25, 34, 42]:
     grid_sorted = drf_grid.get_grid(sort_by='mean_residual_deviance', decreasing=False)
     print("Getting best model")
     best_model = grid_sorted[0]
+    r2 = best_model.model_performance(test_data=test)['r2']
+    mae = best_model.model_performance(test_data=test)['mae']
+    print("Mean residual deviance")
+    mrd = best_model.model_performance(test_data=test)['mean_residual_deviance']
 
-    pred_test = best_model.predict(test)
-    pred_valid = best_model.predict(valid)
-    best_model.show()
+    r2, mae, mrd = "{:.04f}".format(r2), "{:.04f}".format(mae), "{:.04f}".format(mrd)
 
-    r2, mae = best_model.r2(valid=True), best_model.mae(valid=True)
-    r2, mae = "{:.04f}".format(r2), "{:.04f}".format(mae)
-    mrd = best_model.mean_residual_deviance(valid=True)
-    mrd = "{:.04f}".format(mrd)
+    print("Mean residual deviance: ", mrd)
+    print("Mean average error: ", mae)
+    print("Pearson Coefficient R^2: ", r2)
+    print(best_model.actual_params['max_depth'])
+    print(best_model.actual_params['min_rows'])
+    print(best_model.actual_params['sample_rate'])
+    print(best_model.actual_params['col_sample_rate_per_tree'])
+    print(best_model.actual_params['ntrees'])
 
-    print(f"R2: train {best_model.r2()} \n valid {best_model.r2(valid=True)} \n ")
-    print("R2 and mae", r2, best_model.mae(valid=True))
+
+
+
     now = datetime.datetime.now().strftime("%y%m%d%H%M")
-    h2o.save_model(best_model, path="temp/best_DRF_model", filename=f"DRF_{seed}_{now}_{r2}_{mae}_{mrd}", force=True)
-    print(best_model.actual_params)
-    h2o.shutdown()
+    h2o.save_model(best_model, path="temp/best_DRF_model", filename=f"DRF_{now}_{seed}_{r2}_{mae}_{mrd}", force=True)
+    #print(best_model.actual_params)
+    h2o.cluster().shutdown()
+    time.sleep(10)
 
     # com drop top 5 , mae 0.10 validation e 0,108 train
     # com drop, 0,10 e 0.108

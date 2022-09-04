@@ -3,12 +3,15 @@
 import sys
 import time
 
-from database2dataframe import db_to_df
+
 import pandas as pd
 import numpy as np
 import math as m
 # MATPLOTLIB
 import matplotlib.pyplot as plt
+# matplotlib parameters for Latex
+
+
 from matplotlib import cm
 from matplotlib.colors import ListedColormap, LinearSegmentedColormap
 import warnings
@@ -52,7 +55,15 @@ Talvez usar gradientboost para aumentar os dados
 """
 
 # Analysis with df
-df = db_to_df().copy()
+# import database2dataframe
+# df = database2dataframe.db_to_df().copy()
+df = pd.read_pickle('freeze_casting_df.pkl')
+# Rename Columns
+df.columns = ['Sólido', 'Fluido', 'Amostra', 'Tipo da amostra', 'Temp de congelamento',
+       'Taxa de congelamento', 'Tempo de sublimação', 'Tempo de sinterização', 'Temperatura de sinterização',
+       'Fração de volume do sólido', 'Fração de volume do líquido', 'porosidade']
+print(df.head())
+# print("Used columns:", df.columns)
 print(f"Count of Null values out of {len(df)} rows \n", df.isnull().sum())
 # # Drop columns with less than min_n_rows as not null values
 # for col in df.columns:
@@ -73,20 +84,50 @@ print(f"Count of Null values out of {len(df)} rows \n", df.isnull().sum())
 # plt.figure(figsize=(16, 6))
 
 # Correlation heatmap
-heatmap = sns.heatmap(df.corr(), vmin=-1, vmax=1, annot=True, cmap='BrBG')
-heatmap.set_title('Correlation Heatmap', fontdict={'fontsize': 18}, pad=12)
+
+plt.figure(figsize=(18, 12))
+#plt.tight_layout()
+plt.show()
+plt.subplots_adjust(left=0.21, right=1.05, top=0.95, bottom=0.3)
+heatmap = sns.heatmap(df.corr(), vmin=-1, vmax=1, annot=True, cmap='BrBG', fmt=".2%", annot_kws={"fontsize": 18})
+heatmap.set_xticklabels(heatmap.get_xmajorticklabels(), fontsize=18)
+heatmap.set_yticklabels(heatmap.get_ymajorticklabels(), fontsize=18)
+heatmap.set_xticklabels(heatmap.get_xticklabels(), rotation=45, horizontalalignment='right')
+#heatmap.set_title('Matriz de Correlação', fontdict={'fontsize': 18}, pad=12)
 print("Correlation matrix \n")
-df.corr()['porosity']
+plt.savefig(f"images/Correlation.png")
+# df.corr()['porosity']
 
 
 # #################################### Categorical Analysis
-# Plot porosity against string columns
+# Plot porosidade against string columns
 str_cols = df.select_dtypes(include=[object]).columns
 df_str = df[str_cols].dropna()
 count_filter_n = 50
 rank_filter_n = 5
 
-plt.close("all")
+
+# Count categorical data
+for col in str_cols:
+    plt.figure(figsize=(12, 8))
+    plt.subplots_adjust(bottom=0.4)
+    top_n = 5
+    top_samples = df.groupby(col)[col].count().sort_values(ascending=False)[0:top_n]
+    top_samples_columns = top_samples.axes[0].values
+    # top_10_samples_columns = ['Al2O3', 'HAP', 'YSZ', 'Mullite', 'PZT', 'Bioglass', 'Si3N4', 'Al2O3/ZrO2', 'TiO2', 'SiO2']
+    ax = top_samples.iloc[0:top_n].plot(kind="bar", fontsize=32)
+    for tick in ax.get_xticklabels():
+        tick.set_rotation(45)
+    ax.bar_label(ax.containers[0], label_type='center', fontsize=24)
+    ax.axes.get_yaxis().set_visible(False)
+    ax.xaxis.set_label_text("")
+    # plt.suptitle(f'Contagem de {col}')
+    # plt.savefig(f"images/Contagem de {col}.png", bbox_inches='tight')
+    plt.savefig(f"images/Contagem de {col}.png")
+    plt.show()
+
+
+# plt.close("all")
 for col in str_cols:
     filtered_df = df[df[col].notnull()]  # Remove null in column
     rank_filter_n = 5
@@ -96,16 +137,15 @@ for col in str_cols:
     filtered_df = filtered_df[filtered_df[col].isin(selected_filter)]
     g = sns.FacetGrid(filtered_df, row=col,
                       height=1.6, aspect=4)
-    g.map(sns.kdeplot, 'porosity')
+    g.map(sns.kdeplot, 'porosidade')
     # rank_filter = df_str[col].value_counts().head(5)  # list to filter by rank
 
 plt.show()
-plt.close("all")
+# plt.close("all")
 
 
 mca = prince.MCA()
 X = df[str_cols].dropna()
-X = filtered_df[str_cols].dropna()
 fig, ax = plt.subplots()
 mc = prince.MCA(n_components=10, n_iter=10, copy=True, check_input=True, engine='auto', random_state=42).fit(X)
 mc.plot_coordinates(
@@ -164,9 +204,10 @@ print(kmo_model)
 n_components = 5
 pipeline = Pipeline([('scaling', StandardScaler()), ('pca', PCA(n_components=n_components))])
 pca = PCA(n_components=n_components)
-# X = df_num[df_num.columns.drop('porosity')]
+# X = df_num[df_num.columns.drop('porosidade')]
 X = df_num[df_num.columns]
-y = df_num['porosity']
+y = df_num['porosidade']
+
 
 # components = pca.fit_transform(df_num)
 # components = pipeline.fit_transform(df_num)
@@ -175,7 +216,7 @@ components = pca.fit_transform(X_scaled)
 # print(pd.DataFrame(pca.components_, columns=X_scaled.columns, index=['PC-1', 'PC-2', 'PC-3', 'PC-4', 'PC-5']))
 total_var = pca.explained_variance_ratio_.sum() * 100
 labels = {str(i): f"PC {i+1}" for i in range(n_components)}
-labels['color'] = 'porosity'
+labels['color'] = 'porosidade'
 fig = px.scatter_matrix(
     components,
     color=y,
@@ -188,7 +229,7 @@ fig.show()
 
 # 3D plot Variance
 fig = px.scatter_3d(
-    components, x=0, y=1, z=2, color=df_num['porosity'], title=f'Total Explained Variance: {total_var:.2f}%', labels=labels
+    components, x=0, y=1, z=2, color=df_num['porosidade'], title=f'Total Explained Variance: {total_var:.2f}%', labels=labels
 )
 fig.show()
 exp_var_cumul = np.cumsum(pca.explained_variance_ratio_)
