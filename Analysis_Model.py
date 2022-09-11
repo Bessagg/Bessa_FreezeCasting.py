@@ -17,15 +17,13 @@ for folder in folders:
     for file in files:
         models[file] = h2o.load_model(os.path.join(temp_dir, folder, file))
 
-AutoML_models = models['AutoML']
-DRF_models = models['DRF']
-GBM_models = models['GBM']
 
 df = pd.DataFrame()
 df_var_importance = pd.DataFrame()
 for model in models:
     data = dict()
     data['model'] = model
+    data['model_type'] = model.split("_")[0]
     data['mae'] = models[model].mae()
     data['mae_v'] = models[model].mae(valid=True)
     data['mrd'] = models[model].mean_residual_deviance()
@@ -37,10 +35,15 @@ for model in models:
     if models[model].varimp() is not None:
         var_importance = models[model].varimp(True)
         var_importance['model'] = model
+        var_importance['model_type'] = model.split("_")[0]
+        if model.split("_")[0] == "RNN":
+            continue
         df_var_importance = pd.concat([df_var_importance, var_importance], ignore_index=True)
-        print(var_importance)
 
-g = sns.catplot(data=df_var_importance, kind="bar", x="variable", y="scaled_importance", hue="model")
+
+df_grouped = df_var_importance.groupby('variable').mean()
+top_10_variables = df_var_importance.groupby('variable')['scaled_importance'].nlargest(2)
+g = sns.catplot(data=df_var_importance, kind="bar", x="variable", y="scaled_importance", hue="model_type")
 g.fig.set_size_inches(18, 5)
 sns.move_legend(g, "upper left")
 
