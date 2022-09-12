@@ -31,13 +31,15 @@ for seed in [6, 18, 25, 34, 42]:
 
     grid_params = dict()
     grid_params['ntrees'] = [120]   # 120
-    grid_params['max_depth'] = [30]  # 30
+    grid_params['max_depth'] = [20]  # 20 - 30
     grid_params['min_rows'] = [10]  # 10
     grid_params['nbins'] = [32]  # 32
+    grid_params['nbins_cats'] = [75]  # important
     grid_params['seed'] = [seed]
-    grid_params['sample_rate'] = [0.95]  # 0.99 important
+    grid_params['sample_rate'] = [1]  # 0.99 important
     grid_params['col_sample_rate_per_tree'] = [1]  # 1 important
-    # grid_params['stopping_metric'] = ['AUTO']
+    grid_params['stopping_rounds'] = [20]  #
+    # grid_params['stopping_tolerance'] = [0.001]
 
     drf_grid = H2OGridSearch(model=H2ORandomForestEstimator(),
                              hyper_params=grid_params)
@@ -68,7 +70,7 @@ for seed in [6, 18, 25, 34, 42]:
     print(best_model.actual_params['sample_rate'])
     print(best_model.actual_params['col_sample_rate_per_tree'])
     print(best_model.actual_params['ntrees'])
-
+    best_model.plot()
 
 
 

@@ -9,6 +9,7 @@ pd.set_option('display.max_columns', None)
 # import database2dataframe
 # df = database2dataframe.db_to_df().copy()
 df = pd.read_pickle('freeze_casting_df.pkl')
+#df = pd.read_pickle('freeze_casting_df_v2.0.pkl')
 #print("Used columns:", df.columns)
 
 # H20 DRF - Distributed Random Forest
@@ -23,19 +24,18 @@ for seed in [6, 18, 25, 34, 42]:
     train.frame_id = "Train"
     valid.frame_id = "Valid"
     test.frame_id = "Test"
-
     grid_params = dict()
     grid_params['ntrees'] = [4000]
-    grid_params['learn_rate'] = [0.01]
-    grid_params['sample_rate'] = [0.95]  # important
-    grid_params['col_sample_rate_per_tree'] = [1]  # important
-    grid_params['min_rows'] = [5, 20, 40, 60]  # important
-    grid_params['nbins'] = [20, 60]  # 20
-    grid_params['max_depth'] = [0, 5, 10, 20]
+    grid_params['learn_rate'] = [0.005]  # 0.01
+    # grid_params['sample_rate'] = [0.95]  # important
+    # grid_params['col_sample_rate_per_tree'] = [1]  # important
+    grid_params['min_rows'] = [10]  # important
+    grid_params['max_depth'] = [10]  # important 15 - 5
+    grid_params['nbins'] = [10]  # important
+    grid_params['nbins_cats'] = [75]  # important
     grid_params['seed'] = [seed]
-    grid_params['tweedie_power'] = [1.9]
     grid_params['stopping_metric'] = ['deviance']
-    grid_params['stopping_rounds'] = [15]
+    grid_params['stopping_rounds'] = [10]  # 50
     # grid_params['score_each_iteration'] = ['True']  # not gridable
 
     models_grid = H2OGridSearch(model=H2OGradientBoostingEstimator(),
@@ -68,9 +68,10 @@ for seed in [6, 18, 25, 34, 42]:
     print("Difference of r^2 between test and train: ", diff)
     print("Max depth:", best_model.actual_params['max_depth'])
     print("min rows:", best_model.actual_params['min_rows'])
+    best_model.plot()
 
     # best_model.learning_curve_plot()
     now = datetime.datetime.now().strftime("%y%m%d%H%M")
     h2o.save_model(best_model, path="temp/best_GBM_model", filename=f"GBMv_{now}_{seed}_{r2}_{mae}_{mrd}", force=True)
-    #print(best_model.actual_params)
+    print(best_model.actual_params)
 
