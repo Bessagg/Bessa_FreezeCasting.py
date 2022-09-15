@@ -9,7 +9,7 @@ import pandas as pd
 df = pd.read_pickle('freeze_casting_df.pkl')
 # print("Used columns:", df.columns)
 df.head()
-max_models = 5
+max_models = 50
 seed = 42  # [6, 18, 25, 34, 42]:
 
 
@@ -51,7 +51,7 @@ print("Pearson Coefficient R^2: ", r2)
 print("Difference of r^2 between test and train: ", diff)
 
 now = datetime.datetime.now().strftime("%y%m%d%H%M")
-h2o.save_model(best_model, path="temp/AutoML_model", filename=f"AutoML_{now}_{seed}_{r2}_{mae}_{mrd}_{diff}", force=True)
+h2o.save_model(best_model, path="temp/AutoML_model", filename=f"AutoML_{now}_{seed}_{r2}_{mae}_{mrd}", force=True)
 print("Elapsed {:.04f} minutes".format((time.time() - start)/60))
 print(best_model.base_models)
 

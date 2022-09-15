@@ -34,48 +34,9 @@ cv = True
 
 for seed in [6, 18, 25, 34, 42]:
     grid_params = dict()
-    grid_params['hidden'] = [[300, 200, 100]]  # 0.70 e 0.608
-    grid_params['hidden'] = [[300, 200, 100]]  # 0.70 e 0.608
-    grid_params['hidden'] = [[400, 200, 100]]  # 0.656 0.611 - 0.0005l1 e 1-5l2
-    grid_params['hidden'] = [[600, 300, 150]]  # 0.67 e 0.605
-    grid_params['hidden'] = [[600, 400, 300]]  # 0.67 e 0.607
-    grid_params['hidden'] = [[600, 400]]  # 0.69 e 0.62
-    grid_params['hidden'] = [[800, 600, 200]]  # 0.68 0.60
-    grid_params['hidden'] = [[1200, 600, 600]]  # 0.69 e 0.62
-    grid_params['hidden'] = [[1200, 600]]  # 0.68 e 0.623
-    grid_params['hidden'] = [[1200, 800, 600]]  # 0.7 e 0.63
-    grid_params['hidden'] = [[1200, 800, 800]]  # 0.71 e 0.64
-    grid_params['hidden'] = [[1600, 800, 400]]  # 0.7494 e 0.667  500 epochs  l1: 5e-06 l2: 5e-07
-    grid_params['hidden'] = [[1600, 800, 400, 200]]  # 0.738 e 0.06719
-    grid_params['hidden'] = [[2400, 1200, 800, 400]]  # 0.75 e 0.67
-    grid_params['hidden'] = [[2400, 1200, 800]]  # 0.759 e 0.666  5e-6 5e-7 / cv 0.612
-    grid_params['hidden'] = [[3000, 1500, 750]]  # cv 0.618 e max 0.656 / 860 epochs
-    # Dropout had no good results
-    # Only L1 had no good results
-    # Only l2
-    grid_params['hidden'] = [[1600, 800, 400, 200]]  # seed = 6 0.76 e 0.576
-    grid_params['hidden'] = [[400, 200, 100]]  # seed=6 0.77 e 0.587
-    # L1 & L2
-    grid_params['hidden'] = [[400, 200, 100]]  # seed=6 0.76 e 0.577, 0.76 e 0.59
-    grid_params['hidden'] = [[400, 200, 100]]  # seed=6 0.76 e 0.577, 0.76 e 0.59
-    grid_params['hidden'] = [[64, 32, 16, 4]]  # 0.755 e 0.6133
-    grid_params['hidden'] = [[128, 64, 32, 16, 4]]  # 0.77 0.562
-    grid_params['hidden'] = [[1600, 800, 400, 200]]  # seed = 6 0.6947 e 0.5830
-    grid_params['hidden'] = [[1600, 800, 400, 200]]  # seed = 18 0.7385 e 0.541
-    grid_params['hidden'] = [[1600, 800, 400, 200]]  # seed = 25 0.749 e 0.574
-    grid_params['hidden'] = [[100, 100, 50]]  # seed = 25 0.749 e 0.574
-
-
-    grid_params['hidden'] = [[400, 200, 100], [200, 100, 100], [64, 32, 16, 4], [32, 16, 8]]
-
-
-
-
-
-    #grid_params['hidden'] = [[32, 16, 4]]  #
-
+    grid_params['hidden'] = [[400, 200, 100], [800,400,200], [120, 60, 30, 15], [64, 32, 18], [64, 32, 18, 9]]
     grid_params['epochs'] = [2000]
-    grid_params['activation'] = ['Rectifier']  # 'TanhWithDropout', 'RectifierWithDropout'
+    grid_params['activation'] = ['Rectifier', 'RectifierWithDropout']  # 'TanhWithDropout', 'RectifierWithDropout'
     grid_params['tweedie_power'] = [1.2]
     # grid_params['score_interval'] = [5.0, 3.0, 10.0]
     grid_params['l1'] = [1e-6]  #, 5e-7, 1e-7]
