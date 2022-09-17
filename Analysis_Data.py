@@ -2,64 +2,30 @@
 # Utilized to create and work with dataframes
 import sys
 import time
-
-
 import pandas as pd
 import numpy as np
 import math as m
 # MATPLOTLIB
 import matplotlib.pyplot as plt
 # matplotlib parameters for Latex
-
-
-from matplotlib import cm
-from matplotlib.colors import ListedColormap, LinearSegmentedColormap
-import warnings
-import matplotlib.mlab as mlab
-import matplotlib as mpl
-import matplotlib.cm as cm
-import matplotlib.colors as mcolors
-from matplotlib import rc
-from matplotlib.ticker import MultipleLocator, FormatStrFormatter
-from pylab import rcParams
-from matplotlib.ticker import AutoMinorLocator
-import scipy.stats as stats
-# import statsmodels.api as sm
 import plotly.express as px
 from sklearn.preprocessing import StandardScaler
 from sklearn import preprocessing
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder
-from sklearn.preprocessing import LabelEncoder
 from sklearn.decomposition import PCA
-from sklearn.manifold import TSNE
-import matplotlib.ticker as ticker
-# For point density plots:
-from scipy.stats import gaussian_kde
-#import statsmodels.api as sm
 import seaborn as sns
-from scipy.stats import norm
-# command-line arguments
-import sys
 import prince
 import plotly.io as pio
 pio.renderers.default = "browser"
 
-"""
-Possíveis tentativas:
-Testar dropando todos os nulos e treinando junto (306 linhas)
-Treinando separadamente (num = 464 linhas, str = 1073 linhas, str_filtered = 270 linhas)
-Matrix de arvore nao tem problema com isso
-Talvez usar gradientboost para aumentar os dados
 
-"""
-
-# Analysis with df
+# Load generated df
 # import database2dataframe
-# df = database2dataframe.db_to_df().copy()
-df = pd.read_pickle('freeze_casting_df.pkl')
+df = pd.read_pickle('freeze_casting_df_v3.0.pkl')
+
 # Rename Columns
-df.columns = ['Sólido', 'Fluido', 'Amostra', 'Tipo da amostra', 'Temp de congelamento',
+df.columns = ['Sólido', 'Fluido', 'Tipo da amostra', 'Temp de congelamento',
        'Taxa de congelamento', 'Tempo de sublimação', 'Tempo de sinterização', 'Temperatura de sinterização',
        'Fração de volume do sólido', 'Fração de volume do líquido', 'porosidade']
 print(df.head())
@@ -83,17 +49,16 @@ print(f"Count of Null values out of {len(df)} rows \n", df.isnull().sum())
 # pd.value_counts(df['pore_structure']).plot.bar()
 # plt.figure(figsize=(16, 6))
 
-# Correlation heatmap
-
+# #################################### Correlation heatmap
 plt.figure(figsize=(18, 12))
-#plt.tight_layout()
+# plt.tight_layout()
 plt.show()
 plt.subplots_adjust(left=0.21, right=1.05, top=0.95, bottom=0.3)
 heatmap = sns.heatmap(df.corr(), vmin=-1, vmax=1, annot=True, cmap='BrBG', fmt=".2%", annot_kws={"fontsize": 18})
 heatmap.set_xticklabels(heatmap.get_xmajorticklabels(), fontsize=18)
 heatmap.set_yticklabels(heatmap.get_ymajorticklabels(), fontsize=18)
 heatmap.set_xticklabels(heatmap.get_xticklabels(), rotation=45, horizontalalignment='right')
-#heatmap.set_title('Matriz de Correlação', fontdict={'fontsize': 18}, pad=12)
+# heatmap.set_title('Matriz de Correlação', fontdict={'fontsize': 18}, pad=12)
 print("Correlation matrix \n")
 plt.savefig(f"images/Correlation.png")
 # df.corr()['porosity']

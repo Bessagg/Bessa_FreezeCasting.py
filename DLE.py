@@ -34,9 +34,9 @@ cv = True
 
 for seed in [6, 18, 25, 34, 42]:
     grid_params = dict()
-    grid_params['hidden'] = [[400, 200, 100], [800,400,200], [120, 60, 30, 15], [64, 32, 18], [64, 32, 18, 9]]
+    grid_params['hidden'] = [[400, 200, 100]]  # [800,400,200],[128, 64, 32, 16,4]
     grid_params['epochs'] = [2000]
-    grid_params['activation'] = ['Rectifier', 'RectifierWithDropout']  # 'TanhWithDropout', 'RectifierWithDropout'
+    grid_params['activation'] = ['Rectifier']  # 'TanhWithDropout', 'RectifierWithDropout'
     grid_params['tweedie_power'] = [1.2]
     # grid_params['score_interval'] = [5.0, 3.0, 10.0]
     grid_params['l1'] = [1e-6]  #, 5e-7, 1e-7]
@@ -79,7 +79,7 @@ for seed in [6, 18, 25, 34, 42]:
     print("Best model l2:", best_model.actual_params['hidden'])
 
     now = datetime.datetime.now().strftime("%y%m%d%H%M")
-    h2o.save_model(best_model, path="temp/BestRNN_model", filename=f"RNN_{now}_{seed}_{r2}_{mae}_{mrd}_{diff}", force=True)
+    h2o.save_model(best_model, path="temp/BestDLE_model", filename=f"DLE_{now}_{seed}_{r2}_{mae}_{mrd}", force=True)
 
     print("Elapsed {:.04f} minutes".format((time.time() - start)/60))
     print("hidden", best_model.actual_params['hidden'])

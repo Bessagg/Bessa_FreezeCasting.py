@@ -5,14 +5,9 @@ import pandas as pd
 
 pd.set_option('display.max_columns', None)
 
-# Analysis with df
-# import database2dataframe
-# df = database2dataframe.db_to_df().copy()
-df = pd.read_pickle('freeze_casting_df.pkl')
-#df = pd.read_pickle('freeze_casting_df_v2.0.pkl')
-#print("Used columns:", df.columns)
+# Load generated df
+df = pd.read_pickle('freeze_casting_df_v3.0.pkl')
 
-# H20 DRF - Distributed Random Forest
 import h2o
 from h2o.estimators import H2OGradientBoostingEstimator
 
@@ -72,6 +67,6 @@ for seed in [6, 18, 25, 34, 42]:
 
     # best_model.learning_curve_plot()
     now = datetime.datetime.now().strftime("%y%m%d%H%M")
-    h2o.save_model(best_model, path="temp/best_GBM_model", filename=f"GBMv_{now}_{seed}_{r2}_{mae}_{mrd}", force=True)
+    h2o.save_model(best_model, path="temp/best_GBM_model", filename=f"GBM_{now}_{seed}_{r2}_{mae}_{mrd}", force=True)
     print(best_model.actual_params)
 

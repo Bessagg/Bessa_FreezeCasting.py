@@ -2,19 +2,14 @@ import database2dataframe
 import datetime
 import time
 import pandas as pd
-# Analysis with df
-# import database2dataframe
-# df = database2dataframe.db_to_df().copy()
 
-df = pd.read_pickle('freeze_casting_df.pkl')
-# print("Used columns:", df.columns)
-df.head()
+
+# Load generated df
+df = pd.read_pickle('freeze_casting_df_v3.0.pkl')
 max_models = 50
 seed = 42  # [6, 18, 25, 34, 42]:
 
-
 import h2o
-
 h2o.init()
 # Split the dataset into a train and valid set:
 h2o_data = h2o.H2OFrame(df, destination_frame="CatNum")
