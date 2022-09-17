@@ -4,14 +4,14 @@ import sys
 from h2o.grid.grid_search import H2OGridSearch
 from h2o.estimators import H2ORandomForestEstimator
 from functions.functions import best_model_results
-import matplotlib as plt
+import matplotlib.pyplot as plt
 import datetime
 import time
 import pickle
 import pandas as pd
 
 # Load generated df
-df = pd.read_pickle('freeze_casting_df_v3.0.pkl')
+df = pd.read_pickle('freeze_casting_df_v4.0.pkl')
 
 import h2o
 for seed in [6, 18, 25, 34, 42]:
@@ -52,18 +52,13 @@ for seed in [6, 18, 25, 34, 42]:
     grid_sorted = drf_grid.get_grid(sort_by='mean_residual_deviance', decreasing=False)
     print("Getting best model")
     best_model = grid_sorted[0]
+
     r2, mae, mrd = best_model_results(best_model, test)
+    best_model.plot()
+    plt.savefig(f'images/results/train_plot/DRF_{seed}', bbox_inches='tight')
+
     now = datetime.datetime.now().strftime("%y%m%d%H%M")
     h2o.save_model(best_model, path="temp/best_DRF_model", filename=f"DRF_{now}_{seed}_{r2}_{mae}_{mrd}", force=True)
-    #print(best_model.actual_params)
     h2o.cluster().shutdown()
     time.sleep(10)
 
-    # com drop top 5 , mae 0.10 validation e 0,108 train
-    # com drop, 0,10 e 0.108
-    # sem 0.074 e  0.54R^2  e 0.64 0.67R^2
-
-    # Without pore_structure:
-    # com freezing temp, e direction 0.1088 on valid e 0.116 train
-    # com freezing temp: 0.1118 e 0.119
-    # sem freezing temp 0.115 e 0.12 train

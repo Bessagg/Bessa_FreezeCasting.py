@@ -102,7 +102,7 @@ for model in ["AutoML_2209031853_42_0.6204_0.0887_0.0149_0.1532",
     ax.tick_params(labelsize=20)
     # sns.move_legend(ax, "lower center", bbox_to_anchor=(.5, 1), ncol=3, title=None, frameon=False)
     plt.show()
-    plt.savefig(f'images/Resultados/{model_type}_perf', bbox_inches='tight')
+    plt.savefig(f'images/results/{model_type}_perf', bbox_inches='tight')
 
     plt.figure(figsize=(8, 8))
     # Error distribution plot
@@ -114,7 +114,7 @@ for model in ["AutoML_2209031853_42_0.6204_0.0887_0.0149_0.1532",
     bx.tick_params(labelsize=20)
     bx.set(xlim=(-0.4, 0.4))
     plt.show()
-    plt.savefig(f'images/Resultados/{model_type}_erro', bbox_inches='tight')
+    plt.savefig(f'images/results/{model_type}_erro', bbox_inches='tight')
 
 # Generate Mojos for Decision Tress
 # models["DRF_2209132130_42_0.6519_0.0864_0.0129"].download_mojo('mojos')

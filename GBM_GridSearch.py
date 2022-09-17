@@ -1,5 +1,7 @@
 # Enables inline-plot rendering
 from h2o.grid.grid_search import H2OGridSearch
+from functions.functions import best_model_results
+import matplotlib.pyplot as plt
 import datetime
 import pandas as pd
 
@@ -46,21 +48,16 @@ for seed in [6, 18, 25, 34, 42]:
     grid_sorted = models_grid.get_grid(sort_by='mean_residual_deviance', decreasing=False)
     print("Getting best model")
     best_model = grid_sorted[0]
-    pred_test = best_model.predict(test)
-    pred_valid = best_model.predict(valid)
-    best_model.show()
-    r2 = best_model.model_performance(test_data=test)['r2']
-    mae = best_model.model_performance(test_data=test)['mae']
-    print("Mean residual deviance")
-    mrd = best_model.model_performance(test_data=test)['mean_residual_deviance']
 
-    r2, mae, mrd, diff = "{:.04f}".format(r2), "{:.04f}".format(mae), "{:.04f}".format(mrd), \
-                         "{:.04f}".format(best_model.r2() - r2)
+    r2, mae, mrd = best_model_results(best_model, test)
+    best_model.plot()
+    plt.savefig(f'images/results/train_plot/DRF_{seed}', bbox_inches='tight')
 
     print("Mean residual deviance: ", mrd)
     print("Mean average error: ", mae)
     print("Pearson Coefficient R^2: ", r2)
-    print("Difference of r^2 between test and train: ", diff)
+    print("Difference of r^2 train - test: ",
+          best_model.model_performance(test_data=train)['r2'] - best_model.model_performance(test_data=test)['r2'])
     print("Max depth:", best_model.actual_params['max_depth'])
     print("min rows:", best_model.actual_params['min_rows'])
     best_model.plot()
