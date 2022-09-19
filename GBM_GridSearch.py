@@ -8,7 +8,7 @@ import pandas as pd
 pd.set_option('display.max_columns', None)
 
 # Load generated df
-df = pd.read_pickle('freeze_casting_df_v3.0.pkl')
+df = pd.read_pickle('freeze_casting_df_v4.0.pkl')
 
 import h2o
 from h2o.estimators import H2OGradientBoostingEstimator
@@ -49,18 +49,12 @@ for seed in [6, 18, 25, 34, 42]:
     print("Getting best model")
     best_model = grid_sorted[0]
 
-    r2, mae, mrd = best_model_results(best_model, test)
+    r2, mae, mrd = best_model_results(best_model, test, train)
     best_model.plot()
-    plt.savefig(f'images/results/train_plot/DRF_{seed}', bbox_inches='tight')
+    plt.savefig(f'images/results/train_plot/GBM_{seed}', bbox_inches='tight')
 
-    print("Mean residual deviance: ", mrd)
-    print("Mean average error: ", mae)
-    print("Pearson Coefficient R^2: ", r2)
-    print("Difference of r^2 train - test: ",
-          best_model.model_performance(test_data=train)['r2'] - best_model.model_performance(test_data=test)['r2'])
     print("Max depth:", best_model.actual_params['max_depth'])
     print("min rows:", best_model.actual_params['min_rows'])
-    best_model.plot()
 
     # best_model.learning_curve_plot()
     now = datetime.datetime.now().strftime("%y%m%d%H%M")

@@ -53,9 +53,15 @@ for seed in [6, 18, 25, 34, 42]:
     print("Getting best model")
     best_model = grid_sorted[0]
 
-    r2, mae, mrd = best_model_results(best_model, test)
+    r2, mae, mrd = best_model_results(best_model, test, train)
     best_model.plot()
     plt.savefig(f'images/results/train_plot/DRF_{seed}', bbox_inches='tight')
+
+    print(best_model.actual_params['max_depth'])
+    print(best_model.actual_params['min_rows'])
+    print(best_model.actual_params['sample_rate'])
+    print(best_model.actual_params['col_sample_rate_per_tree'])
+    print(best_model.actual_params['ntrees'])
 
     now = datetime.datetime.now().strftime("%y%m%d%H%M")
     h2o.save_model(best_model, path="temp/best_DRF_model", filename=f"DRF_{now}_{seed}_{r2}_{mae}_{mrd}", force=True)
