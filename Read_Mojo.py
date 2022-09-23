@@ -8,9 +8,10 @@ cd h2o-3.36.1.2
 # This requires that graphviz is installed.
 
 tree = 0
+path_mojo = r"E:\0 - UnB\PG_Freeze Casting\Bessa - FreezeCasting\mojos\Grid_GBM_Train_model_python_1663432935304_20_model_1.zip"
 f"""
 brew install graphviz # example for Mac OsX if not already installed
-java -cp h2o.jar hex.genmodel.tools.PrintMojo --tree {tree} -i "E:\0 - UnB\PG_Freeze Casting\Bessa - FreezeCasting\mojos\Grid_GBM_Train_model_python_1662912152779_103_model_1.zip" -o model.gv -f 20 -d 3
+java -cp h2o.jar hex.genmodel.tools.PrintMojo --tree 0 -i "E:\0 - UnB\PG_Freeze Casting\Bessa - FreezeCasting\mojos\Grid_DRF_Train_model_python_1663432809433_1_model_1.zip" -o model.gv -f 20 -d 3
 dot -Tpng model.gv -o model.png
 
 """

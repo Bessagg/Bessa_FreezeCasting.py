@@ -53,7 +53,7 @@ h2o_data = h2o.H2OFrame(df, destination_frame="CatNum")
 train, test, valid = h2o_data.split_frame([0.7, 0.15], seed=seed)
 df_true = test[['porosity', 'material_group', 'name_fluid1']].as_data_frame()
 
-for model in ["AutoML_2209180117_42_0.6270_0.0881_0.0146",
+for model in ["AutoML_2209191841_42_0.7999_0.0626_0.0074",
               "DRF_2209171340_42_0.6664_0.0848_0.0124",
               "DLE_2209171651_42_0.6476_0.0886_0.0886",
               "GBM_2209171448_42_0.6315_0.0834_0.0145"]:
@@ -66,8 +66,9 @@ for model in ["AutoML_2209180117_42_0.6270_0.0881_0.0146",
     df_model_results['model_type'] = model_type
     df_model_results['erro'] = df_model_results['predict'] - test['porosity'].as_data_frame().squeeze()
     df_model_results['erro_abs'] = df_model_results['erro'].abs()
-    df_model_results['MAPE%'] = df_model_results['erro_abs']/test['porosity']
-    df_model_results.rename(columns={'predict': model_type, 'erro': f'erro_{model_type}', 'erro_abs': f'erro_abs_{model_type}'}
+    df_model_results['MAPE%'] = df_model_results['erro_abs']/test['porosity'].as_data_frame().squeeze()
+    df_model_results.rename(columns={'predict': model_type, 'erro': f'erro_{model_type}', 'erro_abs': f'erro_abs_{model_type}',
+                                     'MAPE%': f'MAPE%{model_type}'}
                             , inplace=True)
 
     df_true = pd.concat([df_true, df_model_results], axis=1)
@@ -102,8 +103,8 @@ for model in ["AutoML_2209180117_42_0.6270_0.0881_0.0146",
     plt.savefig(f'images/results/{model_type}_erro', bbox_inches='tight')
 
 # Generate Mojos for Decision Tress
-# models["DRF_2209132130_42_0.6519_0.0864_0.0129"].download_mojo('mojos')
-# models["GBM_2209111729_42_0.6311_0.0828_0.0145"].download_mojo('mojos')
+models["DRF_2209171340_42_0.6664_0.0848_0.0124"].download_mojo('mojos')
+models["GBM_2209171448_42_0.6315_0.0834_0.0145"].download_mojo('mojos')
 
 
 # ################################## Generate Results and Tables
@@ -142,7 +143,7 @@ df_r.drop('model', axis=1, inplace=True)
 
 
 print(df_r)
-df_by_model_type = df_r.groupby('model_type')['r2_t', 'mae_t', 'mrd_t', 'Δr2'].mean()
+df_by_model_type = df_r.groupby('model_type')['r2_t', 'mae_t', 'Δr2'].mean()
 print('Model Mean Results by Type\n', df_by_model_type)
 df_by_model_type_std = df_r.groupby('model_type')['r2_t', 'mae_t', 'mrd_t'].std()
 print('Model STD of Results by Type\n', df_by_model_type_std)

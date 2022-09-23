@@ -28,7 +28,7 @@ cv = True
 for seed in [6, 18, 25, 34, 42]:
     grid_params = dict()
     grid_params['hidden'] = [[400, 200, 100]]  # [800,400,200],[128, 64, 32, 16,4]
-    grid_params['epochs'] = [1000]  # 2000
+    grid_params['epochs'] = [1000]  # 1000
     grid_params['activation'] = ['Rectifier']  # 'TanhWithDropout', 'RectifierWithDropout'
     grid_params['tweedie_power'] = [1.2]
     # grid_params['score_interval'] = [5.0, 3.0, 10.0]
