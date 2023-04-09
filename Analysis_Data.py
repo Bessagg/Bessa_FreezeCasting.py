@@ -23,6 +23,7 @@ pio.renderers.default = "browser"
 # Load generated df
 # import database2dataframe
 df = pd.read_pickle('freeze_casting_df_v4.0.pkl')
+out_col = 'Exception_output'  # Name of output column
 
 # Rename Columns and values
 df.rename(columns={'name_fluid1': 'Nome do Fluido', 'material': 'Nome do Sólido', 'material_group': 'Tipo da Amostra',
@@ -73,7 +74,7 @@ plt.savefig(f"images/Correlation.png")
 # #################################### Categorical Analysis
 # Plot porosidade against string columns
 str_cols = df.select_dtypes(include=[object]).columns
-df_str = df[str_cols].dropna()
+# df_str = df[str_cols].dropna()
 count_filter_n = 50
 rank_filter_n = 5
 
@@ -138,14 +139,14 @@ encoder = OneHotEncoder(handle_unknown='ignore')
 
 """
 Before you perform factor analysis, you need to evaluate the “factorability” of our dataset. 
-Factorability means "can we found the factors in the dataset?". T
+Factorability means "can we found the factors in the dataset?". 
 here are two methods to check the factorability or sampling adequacy:
 
 Bartlett’s Test
 Kaiser-Meyer-Olkin Test
 """
 num_cols = df.select_dtypes(include=[float]).columns
-df_num = df[num_cols].dropna()
+# df_num = df[num_cols].dropna()
 count_filter_n = 50
 
 """
@@ -171,7 +172,7 @@ kmo_all, kmo_model = calculate_kmo(df_num)
 print(kmo_model)
 
 # ########### PCA Analysis Principal component Analysis
-n_components = 5
+n_components = 3
 pipeline = Pipeline([('scaling', StandardScaler()), ('pca', PCA(n_components=n_components))])
 pca = PCA(n_components=n_components)
 # X = df_num[df_num.columns.drop('Porosidade')]
