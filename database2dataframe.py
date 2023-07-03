@@ -9,7 +9,6 @@ import MySQLdb
 
 
 def db_to_df():
-
     # Must have Apache, mySQL admin online and running
     conn = MySQLdb.connect(host="localhost",
                            user="root",
@@ -343,10 +342,10 @@ def db_to_df():
     data['norm_elastic'] = (data['elastic'] / data['elastic_bulk'])
 
     # Drop non-usable columns
-    data.drop(['last_updated_x', 'name_author', 'authors', 'author_ID', 'paper_ID', 'sample_ID',
-             'title', 'journal', 'volume', 'pages', 'year', 'doi', 'affiliation', 'city',
-             'props_part_ID1', 'props_fluid_ID1', 'props_part_ID1', 'props_disp1_ID', 'material_ID', 'country', 'long',
-             'lat', 'email', 'last_updated_y', 'last_update', 'mold_ID'], axis=1, inplace=True)
+    # data.drop(['last_updated_x', 'name_author', 'authors', 'author_ID', 'paper_ID', 'sample_ID',
+    #          'title', 'journal', 'volume', 'pages', 'year', 'doi', 'affiliation', 'city',
+    #          'props_part_ID1', 'props_fluid_ID1', 'props_part_ID1', 'props_disp1_ID', 'material_ID', 'country', 'long',
+    #          'lat', 'email', 'last_updated_y', 'last_update', 'mold_ID'], axis=1, inplace=True)
     # Usable cols
     selected_cols = ['pore_structure', 'name_part1', 'name_fluid1', 'sublimated', 'material', 'technique', 'direction',
                      'material_group',
@@ -356,14 +355,13 @@ def db_to_df():
 
     selected_cols.remove('sublimated'), selected_cols.remove('technique'), selected_cols.remove('pore'),
     selected_cols.remove('pore_structure'), selected_cols.remove('direction')
-    # 'technique', 'sublimated' only have one value, direction' only have 600 rows. Hence, these columns were dropped.
-    data = data[selected_cols]
+    # 'technique', 'sublimated' only have one value, direction' only has 600 rows. Hence, these columns were dropped.
+    # data = data[selected_cols]
 
     # data.drop('temp_cold', axis=1, inplace=True)  #  Highest corr with porosity of 14%, sadly only has 545 rows
 
     # Select only rows that porosity is not null
-    data = data[data['porosity'].notna()]
-    print(f"Count of Null values out of {len(data)} rows \n", data.isnull().sum())
+    #data = data[data['porosity'].notna()]
     return data
 
 
