@@ -1,25 +1,37 @@
 # Enables inline-plot rendering
-from h2o.grid.grid_search import H2OGridSearch
-from helpers.functions import best_model_results, get_selected_model_from_each_folder
-import matplotlib.pyplot as plt
-import datetime
+from helpers.functions import  get_selected_model_from_each_folder
 import pandas as pd
+import h2o
+from h2o.estimators import H2OStackedEnsembleEstimator
+import data_parser
 pd.set_option('display.max_columns', None)
 
 # Load generated df
-df = pd.read_pickle('freeze_casting_df_v04.pkl')
+DataParser = data_parser.DataParser()
+df = DataParser.load_complete_data_from_pickle()
+df = df[DataParser.selected_cols_reduced]
+df = DataParser.preprocess_dropna(df)
+opt_save = True
+seeds = [6, 18, 25, 32, 42]
+selected_seed = 32
+r2s = []
+selected_models_path = "selected_models"
 
-import h2o
-from h2o.estimators import H2OStackedEnsembleEstimator
+
 h2o.init(nthreads=-1, min_mem_size_GB=8)
 
 list_model_paths = get_selected_model_from_each_folder()
 loaded_models = []
+# all models must be trained in the same training frame. Hence, use same train seed.
 for path in list_model_paths:
-    model = h2o.load_model(path)
-    loaded_models.append(model)
+    filename = path.split('\\')[-1]
+    seed = int(filename.split('_')[2])
+    if seed == selected_seed:
+        model = h2o.load_model(path)
+        model.seed = seed
+        loaded_models.append(model)
 
-for seed in [6, 18, 25, 34, 42]:
+for seed in seeds:
     h2o.init(nthreads=-1, min_mem_size_GB=8)
     # Split the dataset into a train and valid set:
     h2o_data = h2o.H2OFrame(df, destination_frame="CatNum")

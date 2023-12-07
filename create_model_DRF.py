@@ -1,26 +1,11 @@
 # Enables inline-plot rendering
 # Utilized to create and work with dataframes
-import sys
-import time
-from IPython.display import Image
 import database2dataframe
 import os
-import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
-import plotly.express as px
-from sklearn.preprocessing import StandardScaler
-from sklearn import preprocessing
-from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import OneHotEncoder
-from sklearn.decomposition import PCA
-from sklearn.manifold import TSNE
-import seaborn as sns
-# command-line arguments
-import sys
-import prince
 import plotly.io as pio
 import subprocess
+import data_parser
+
 
 pio.renderers.default = "browser"
 
@@ -58,11 +43,13 @@ def generateTreeImage(gv_file_path, image_file_path, tree_id):
         print("Error: Image file " + image_file_path + " could not be generated.")
 
 
-# Analysis with df
-df = database2dataframe.db_to_df().copy()
-print("Rows:", len(df))
-
-df = database2dataframe.filter_str_cols_by_rank(df, min_rank=6)
+# Load generated df
+DataParser = data_parser.DataParser()
+df = DataParser.load_complete_data_from_pickle()
+df = df[DataParser.selected_cols_reduced]
+df = DataParser.preprocess_dropna(df)
+opt_save = True
+seeds = [6, 18, 25, 32, 42]
 
 # H20 DRF - Distributed Random Forest
 import h2o
@@ -131,8 +118,3 @@ dot -Tpng model.gv -o model.png
 open model.png
 """
 
-# Grid Analysis
-grid = h2o.get_grid("grid-e9a3f18f-ee2d-4c4f-9743-dd269f464100")
-grid_sorted = grid.get_grid(sort_by='mae', decreasing=True)
-best_drf = grid_sorted.models[0]
-print(best_drf)

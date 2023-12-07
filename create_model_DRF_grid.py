@@ -9,12 +9,20 @@ import datetime
 import time
 import pickle
 import pandas as pd
+import data_parser
+import h2o
 
 # Load generated df
-df = pd.read_pickle('freeze_casting_df_v04.pkl')
+DataParser = data_parser.DataParser()
+df = DataParser.load_complete_data_from_pickle()
+df = df[DataParser.selected_cols]
+df = DataParser.preprocess_dropna(df)
+opt_save = True
+seeds = [6, 18, 25, 32, 42]
+r2s = []
 
-import h2o
-for seed in [6, 18, 25, 34, 42]:
+
+for seed in seeds:
     start = time.time()
     h2o.init(nthreads=-1, min_mem_size_GB=10)
 
@@ -28,17 +36,17 @@ for seed in [6, 18, 25, 34, 42]:
 
     grid_params = dict()
     grid_params['ntrees'] = [120]   # 120
-    grid_params['max_depth'] = [20]  # 20 - 30
+    grid_params['max_depth'] = [30]  # 20 - 30
     grid_params['min_rows'] = [10]  # 10
     grid_params['nbins'] = [32]  # 32
     grid_params['nbins_cats'] = [100]  # important
     grid_params['seed'] = [seed]
     grid_params['sample_rate'] = [1]  # 0.99 important
     grid_params['col_sample_rate_per_tree'] = [1]  # 1 important
-    grid_params['stopping_rounds'] = [20]  #
+    grid_params['stopping_rounds'] = [10]  #
     # grid_params['stopping_tolerance'] = [0.001]
 
-    drf_grid = H2OGridSearch(model=H2ORandomForestEstimator(),
+    drf_grid = H2OGridSearch(model=H2ORandomForestEstimator(nfolds=5, keep_cross_validation_predictions=True),
                              hyper_params=grid_params)
     print("Training")
     X = df[df.columns.drop('porosity')].columns.values.tolist()
@@ -51,7 +59,9 @@ for seed in [6, 18, 25, 34, 42]:
     # drf_grid.show()
     grid_sorted = drf_grid.get_grid(sort_by='mean_residual_deviance', decreasing=False)
     print("Getting best model")
-    best_model = grid_sorted[0]
+    # best_model = grid_sorted[0]
+    best_model = h2o.get_model(grid_sorted[0].model_id)
+    best_model.keep_cross_validation_predictions = True
 
     r2, mae, mrd = best_model_results(best_model, test, train)
     best_model.plot()
@@ -67,4 +77,10 @@ for seed in [6, 18, 25, 34, 42]:
     h2o.save_model(best_model, path="temp/best_DRF_model", filename=f"DRF_{now}_{seed}_{r2}_{mae}_{mrd}", force=True)
     h2o.cluster().shutdown()
     time.sleep(10)
+    r2s.append(float(r2))
+
+df_r2 = pd.DataFrame(r2s)
+print(best_model.actual_params)
+print('Mean all r2s', df_r2.mean())
+print(df_r2)
 
