@@ -3,21 +3,36 @@ import pickle
 import warnings
 import numpy as np
 import pandas as pd
+
 warnings.filterwarnings("ignore")
 
 
 class DataParser:
     def __init__(self):
-        self.selected_cols = ['name_part1', 'name_fluid1', 'sublimated', 'material', 'technique', 'direction',
-                              'material_group',
-                              'temp_cold', 'cooling_rate',
-                              'time_sub',
-                              'time_sinter_1', 'temp_sinter_1', 'vf_total', 'porosity']
+        self.selected_cols_all = ['name_part1', 'material',  # name_part2
+                                  'name_fluid1', 'sublimated', 'technique', 'direction',
+                                  'material_group',
+                                  'temp_cold', 'cooling_rate',
+                                  'time_sub',
+                                  'time_sinter_1', 'temp_sinter_1', 'vf_total', 'porosity']
 
-        self.selected_cols_reduced = ['name_part1', 'name_fluid1', 'material', 'material_group',
+        self.selected_cols_reduced = ['name_part1', 'name_part2',
+                                      'name_fluid1',  # 'sublimated', 'technique', 'direction',
+                                      'material_group',
                                       'temp_cold', 'cooling_rate',
                                       'time_sub',
-                                      'time_sinter_1', 'temp_sinter_1',  'vf_total', 'porosity']
+                                      'time_sinter_1', 'temp_sinter_1', 'vf_total', 'porosity']
+
+        self.selected_cols_nameparts = ['name_part1', 'name_part2',  # material
+                                        'name_fluid1', 'sublimated', 'technique', 'direction',
+                                        'material_group',
+                                        'temp_cold', 'cooling_rate',
+                                        'time_sub',
+                                        'time_sinter_1', 'temp_sinter_1', 'vf_total', 'porosity']
+
+        # Selected Cols:
+        self.selected_cols = self.selected_cols_reduced
+        self.target = 'porosity'
         # technique', 'sublimated' only have one value / direction' only has 600 rows
 
     def load_complete_data_from_mysql(self):
@@ -34,10 +49,22 @@ class DataParser:
         with open(pkl_filename, 'wb') as file:
             pickle.dump(df, file)
 
-    def preprocess_0(self, df):
+    def preprocess_dropna(self, df):
         # Drop samples with no porosity values
         df = df[df['porosity'].notna()]
-        df = df[self.selected_cols]
+        return df
+
+    def rename_columns(self, df):
+        df.rename(columns={'name_part1': 'Solid Name', 'name_part2': 'Solid Name 2', 'material': 'Sample Name',  # name_part2
+                           'name_fluid1': 'Fluid Name', 'sublimated': 'Sublimated?', 'technique': 'Technique',
+                           'direction': 'F. Direction',
+                           'material_group': 'Group',
+                           'temp_cold': 'Temp. Cold', 'cooling_rate': 'Cooling Rate',
+                           'time_sub': "Time Sub",
+                           'time_sinter_1': 'Time Sinter', 'temp_sinter_1': 'Temp. Sinter', 'vf_total': 'Solid Loading',
+                           'porosity': 'porosity'
+
+                           }, inplace=True)
         return df
 
 
