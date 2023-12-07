@@ -24,16 +24,19 @@ def save_preprocessor(preprocessor, preprocessor_filename):
 
 
 def get_selected_model_from_each_folder(selected_models_path="selected_models"):
+    """Gets list of files of all models in selected_models folder (not automl or stacked)"""
     folders = os.listdir(selected_models_path)
     selected_files = []
     # add files with highest [3] of each folder
     for folder in folders:
-        files = os.listdir(os.path.join(selected_models_path, folder))
-        if "AutoML" or "Stacked" in files:
-            continue
-        sorted_files = sorted(files, key=lambda x: float(x.split('_')[3]))
-        selected_file = sorted_files[0]
-        selected_files.append(selected_file)
+        if not folder.__contains__('AutoML') or folder.__contains__('Stacked'):
+            files = os.listdir(os.path.join(selected_models_path, folder))
+            if not files == []:
+                print(folder, files)
+                # sorted_files = sorted(files, key=lambda x: float(x.split('_')[3]))
+                # selected_file = sorted_files[0]
+                for file in files:
+                    selected_files.append(os.path.join(selected_models_path, folder, file))  # files[0]
     return selected_files
 
 
