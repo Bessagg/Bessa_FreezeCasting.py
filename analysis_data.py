@@ -17,12 +17,18 @@ from sklearn.decomposition import PCA
 import seaborn as sns
 import prince
 import plotly.io as pio
+import data_parser
 
 pio.renderers.default = "browser"
 
-# Load generated df
-# import database2dataframe
-df = pd.read_pickle('freeze_casting_df_v04.pkl')
+# Load Data
+DataParser = data_parser.DataParser()
+df = DataParser.load_complete_data_from_pickle()
+df = df[DataParser.selected_cols]
+df = DataParser.preprocess_dropna(df)
+df = DataParser.rename_columns(df)
+
+
 
 # Rename Columns and values - translate pt
 # df.rename(columns={'name_fluid1': 'Nome do Fluido', 'material': 'Nome do Sólido', 'material_group': 'Tipo da Amostra',
@@ -55,15 +61,17 @@ print(f"Count of Null values out of {len(df)} rows \n", df.isnull().sum())
 # pd.value_counts(df['pore_structure']).plot.bar()
 # plt.figure(figsize=(16, 6))
 
-# #################################### Correlation heatmap
+# #################################### Correlation heatmap Numerical only
 plt.figure(figsize=(18, 12))
+df_num = df.select_dtypes(include=['number', 'float64'])
 # plt.tight_layout()
 plt.show()
 plt.subplots_adjust(left=0.21, right=1.05, top=0.95, bottom=0.3)
-heatmap = sns.heatmap(df.corr(), vmin=-1, vmax=1, annot=True, cmap='BrBG', fmt=".2%", annot_kws={"fontsize": 18})
+heatmap = sns.heatmap(df_num.corr(), vmin=-1, vmax=1, annot=True, cmap='BrBG', fmt=".2%", annot_kws={"fontsize": 18})
 heatmap.set_xticklabels(heatmap.get_xmajorticklabels(), fontsize=18)
 heatmap.set_yticklabels(heatmap.get_ymajorticklabels(), fontsize=18)
 heatmap.set_xticklabels(heatmap.get_xticklabels(), rotation=45, horizontalalignment='right')
+heatmap.set_yticklabels(heatmap.get_yticklabels(), rotation=45, horizontalalignment='right')
 # heatmap.set_title('Matriz de Correlação', fontdict={'fontsize': 18}, pad=12)
 print("Correlation matrix \n")
 plt.savefig(f"images/Correlation.png")
@@ -72,30 +80,32 @@ plt.savefig(f"images/Correlation.png")
 
 # #################################### Categorical Analysis
 # Plot porosidade against string columns
-str_cols = df.select_dtypes(include=[object]).columns
-df_str = df[str_cols].dropna()
+df_str = (df.select_dtypes(include=[object]))
+# df_str = (df.select_dtypes(include=[object])).dropna()
 count_filter_n = 50
 rank_filter_n = 5
 
-# Count categorical data
-for col in str_cols:
+# Count of categorical data
+for col in df_str.columns:
     plt.figure(figsize=(12, 8))
     plt.subplots_adjust(bottom=0.4)
     top_n = 5
     top_samples = df.groupby(col)[col].count().sort_values(ascending=False)[0:top_n]
-    top_samples_columns = top_samples.axes[0].values
+    # top_samples_columns = top_samples.axes[0].values
     # top_10_samples_columns = ['Al2O3', 'HAP', 'YSZ', 'Mullite', 'PZT', 'Bioglass', 'Si3N4', 'Al2O3/ZrO2', 'TiO2', 'SiO2']
-    ax = top_samples.iloc[0:top_n].plot(kind="bar", fontsize=20)
+    ax = top_samples.iloc[0:top_n].sort_values().plot(kind="bar", fontsize=20)
     for tick in ax.get_xticklabels():
         tick.set_rotation(45)
     ax.bar_label(ax.containers[0], label_type='center', fontsize=24)
     ax.axes.get_yaxis().set_visible(False)
     ax.xaxis.set_label_text("")
-    plt.savefig(f"images/Contagem de {col}.png", bbox_inches='tight')
+    plt.savefig(f"images/Count of {col}.png", bbox_inches='tight')
     plt.show()
-
 # plt.close("all")
-for col in str_cols:
+
+
+# Categorical data Porosity Distribution
+for col in df_str.columns:
     sns.set(font_scale=1.25)
     filtered_df = df[df[col].notnull()]  # Remove null in column
     rank_filter_n = 3
@@ -105,9 +115,9 @@ for col in str_cols:
     filtered_df = filtered_df[filtered_df[col].isin(selected_filter)]
     g = sns.FacetGrid(filtered_df, row=col,
                       height=1.6, aspect=4)
-    g.map(sns.kdeplot, 'Porosidade')
-    g.set_ylabels('Densidade')
-    plt.savefig(f"images/Distribuição de {col}.png", bbox_inches='tight')
+    g.map(sns.kdeplot, 'porosity')
+    g.set_ylabels('Density')
+    plt.savefig(f"images/Count Distribution of {col}.png", bbox_inches='tight')
     # rank_filter = df_str[col].value_counts().head(5)  # list to filter by rank
 
 plt.show()
@@ -115,9 +125,9 @@ plt.show()
 
 
 mca = prince.MCA()
-X = df[str_cols].dropna()
+X = df_str.dropna()
 fig, ax = plt.subplots()
-mc = prince.MCA(n_components=10, n_iter=10, copy=True, check_input=True, engine='auto', random_state=42).fit(X)
+mc = prince.MCA(n_components=2, n_iter=10, copy=True, check_input=True, engine='auto', random_state=42).fit(X)
 mc.plot_coordinates(
     X=X,
     ax=None,
@@ -176,7 +186,7 @@ pipeline = Pipeline([('scaling', StandardScaler()), ('pca', PCA(n_components=n_c
 pca = PCA(n_components=n_components)
 # X = df_num[df_num.columns.drop('Porosidade')]
 X = df_num[df_num.columns]
-y = df_num['Porosidade']
+y = df_num['porosity']
 
 # components = pca.fit_transform(df_num)
 # components = pipeline.fit_transform(df_num)
@@ -185,7 +195,7 @@ components = pca.fit_transform(X_scaled)
 # print(pd.DataFrame(pca.components_, columns=X_scaled.columns, index=['PC-1', 'PC-2', 'PC-3', 'PC-4', 'PC-5']))
 total_var = pca.explained_variance_ratio_.sum() * 100
 labels = {str(i): f"PC {i + 1}" for i in range(n_components)}
-labels['color'] = 'Porosidade'
+labels['color'] = 'Porosity'
 fig = px.scatter_matrix(
     components,
     color=y,
@@ -198,7 +208,7 @@ fig.show()
 
 # 3D plot Variance
 fig = px.scatter_3d(
-    components, x=0, y=1, z=2, color=df_num['Porosidade'], title=f'Total Explained Variance: {total_var:.2f}%',
+    components, x=0, y=1, z=2, color=df_num['porosity'], title=f'Total Explained Variance: {total_var:.2f}%',
     labels=labels
 )
 fig.show()
