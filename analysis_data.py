@@ -18,6 +18,7 @@ import seaborn as sns
 import prince
 import plotly.io as pio
 import data_parser
+import matplotlib
 
 pio.renderers.default = "browser"
 
@@ -67,14 +68,15 @@ df_num = df.select_dtypes(include=['number', 'float64'])
 # plt.tight_layout()
 plt.show()
 plt.subplots_adjust(left=0.21, right=1.05, top=0.95, bottom=0.3)
-heatmap = sns.heatmap(df_num.corr(), vmin=-1, vmax=1, annot=True, cmap='BrBG', fmt=".2%", annot_kws={"fontsize": 18})
-heatmap.set_xticklabels(heatmap.get_xmajorticklabels(), fontsize=18)
-heatmap.set_yticklabels(heatmap.get_ymajorticklabels(), fontsize=18)
+heatmap = sns.heatmap(df_num.corr(), vmin=-1, vmax=1, annot=True, cmap='BrBG', fmt=".2%", annot_kws={"fontsize": 20})
+heatmap.set_xticklabels(heatmap.get_xmajorticklabels(), fontsize=28)
+heatmap.set_yticklabels(heatmap.get_ymajorticklabels(), fontsize=28)
 heatmap.set_xticklabels(heatmap.get_xticklabels(), rotation=45, horizontalalignment='right')
-heatmap.set_yticklabels(heatmap.get_yticklabels(), rotation=45, horizontalalignment='right')
+# heatmap.set_yticklabels(heatmap.get_yticklabels(), rotation=30, horizontalalignment='right')
 # heatmap.set_title('Matriz de Correlação', fontdict={'fontsize': 18}, pad=12)
 print("Correlation matrix \n")
 plt.savefig(f"images/Correlation.png")
+plt.savefig(f"images/Correlation.eps", format='eps')
 # df.corr()['porosity']
 
 
@@ -85,28 +87,37 @@ df_str = (df.select_dtypes(include=[object]))
 count_filter_n = 50
 rank_filter_n = 5
 
+
+plt.close('all')
 # Count of categorical data
 for col in df_str.columns:
-    plt.figure(figsize=(12, 8))
+    f = plt.figure(figsize=(12, 8))
+    f.set_figheight(12)
     plt.subplots_adjust(bottom=0.4)
+    plt.suptitle(col, fontsize=48)
     top_n = 5
     top_samples = df.groupby(col)[col].count().sort_values(ascending=False)[0:top_n]
     # top_samples_columns = top_samples.axes[0].values
     # top_10_samples_columns = ['Al2O3', 'HAP', 'YSZ', 'Mullite', 'PZT', 'Bioglass', 'Si3N4', 'Al2O3/ZrO2', 'TiO2', 'SiO2']
-    ax = top_samples.iloc[0:top_n].sort_values().plot(kind="bar", fontsize=20)
+    ax = top_samples.iloc[0:top_n].sort_values().plot(kind="bar", fontsize=38)
     for tick in ax.get_xticklabels():
         tick.set_rotation(45)
-    ax.bar_label(ax.containers[0], label_type='center', fontsize=24)
+    ax.bar_label(ax.containers[0], label_type='center', fontsize=38, color='black')
     ax.axes.get_yaxis().set_visible(False)
     ax.xaxis.set_label_text("")
-    plt.savefig(f"images/Count of {col}.png", bbox_inches='tight')
+    f.tight_layout()
+    f.subplots_adjust(top=0.9)
+    plt.savefig(f"images/Count of {col}.png")
+    plt.savefig(f"images/Count of {col}.eps", bbox_inches='tight', format='eps')
+
     plt.show()
 # plt.close("all")
 
 
 # Categorical data Porosity Distribution
+
 for col in df_str.columns:
-    sns.set(font_scale=1.25)
+    sns.set(font_scale=1.5)
     filtered_df = df[df[col].notnull()]  # Remove null in column
     rank_filter_n = 3
     rank_filter = df_str[col].value_counts().head(rank_filter_n).axes[0]  # Filter top 5 in column
@@ -117,7 +128,10 @@ for col in df_str.columns:
                       height=1.6, aspect=4)
     g.map(sns.kdeplot, 'porosity')
     g.set_ylabels('Density')
+    print(df_str[col].value_counts(), '\n')
     plt.savefig(f"images/Count Distribution of {col}.png", bbox_inches='tight')
+    plt.savefig(f"images/Count Distribution of {col}.eps", bbox_inches='tight', format='eps')
+
     # rank_filter = df_str[col].value_counts().head(5)  # list to filter by rank
 
 plt.show()

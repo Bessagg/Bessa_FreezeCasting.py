@@ -14,7 +14,7 @@ df = DataParser.load_complete_data_from_pickle()
 df = df[DataParser.selected_cols]
 df = DataParser.preprocess_dropna(df)
 opt_save = True
-selected_models_seed = 32
+selected_models_seed = 42
 r2s = []
 
 warnings.filterwarnings("ignore")
@@ -40,10 +40,13 @@ df_var_importance = pd.DataFrame()
 for model in models:
     data = dict()
     data['model'] = model
+    perf = models[model].cross_validation_metrics_summary().as_data_frame()
     data['model_type'] = model.split("_")[0]
     data['r2'] = models[model].r2()
+    data['r2'] = perf[perf[''] == 'r2']['mean'].values[0]
     data['r2_t'] = model.split("_")[3]
     data['mae'] = models[model].mae()
+    data['mae'] = perf[perf[''] == 'mae']['mean'].values[0]
     data['mae_t'] = model.split("_")[4]
     data['mrd'] = models[model].mean_residual_deviance()
     data['mrd_t'] = model.split("_")[5]
@@ -53,16 +56,17 @@ for model in models:
         var_importance = models[model].varimp(True)
         var_importance['model'] = model
         var_importance['model_type'] = model.split("_")[0]
-        if model.split("_")[0] == "DLE":
-            continue
+        # if model.split("_")[0] == "DLE":
+        #     continue
         df_var_importance = pd.concat([df_var_importance, var_importance], ignore_index=True)
 
 # Test best models for selected seed and compare
 # Load DF
 h2o_data = h2o.H2OFrame(df, destination_frame="CatNum")
 train, test, valid = h2o_data.split_frame([0.7, 0.15], seed=selected_models_seed)
-df_true = test[['porosity', 'material_group', 'name_fluid1']].as_data_frame()
+train_valid = h2o.H2OFrame.rbind(train, valid)
 
+df_true = test[['porosity', 'material_group', 'name_fluid1']].as_data_frame()
 # Selected Seed and models analysis:
 selected_models_path = fun.get_selected_model_from_each_folder(selected_models_path="selected_models")
 selected_seed_models = []
@@ -159,9 +163,9 @@ df_r2 = df_r.copy()
 df_r.drop('model', axis=1, inplace=True)
 
 print(df_r)
-df_by_model_type = df_r.groupby('model_type')[['r2_t', 'mae_t', 'Δr2']].mean()
+df_by_model_type = df_r.groupby('model_type')[['r2', 'r2_t', 'mae_t', 'Δr2']].mean()
 print('Model Mean Results by Type\n', df_by_model_type)
-df_by_model_type_std = df_r.groupby('model_type')[['r2_t', 'mae_t', 'mrd_t']].std()
+df_by_model_type_std = df_r.groupby('model_type')[['r2', 'r2_t', 'mae_t', 'mrd_t']].std()
 print('Model STD of Results by Type\n', df_by_model_type_std)
 
 # Best model mrd for each type

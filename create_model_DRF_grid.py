@@ -18,7 +18,7 @@ df = DataParser.load_complete_data_from_pickle()
 df = df[DataParser.selected_cols]
 df = DataParser.preprocess_dropna(df)
 opt_save = True
-seeds = [6, 18, 25, 32, 42]
+seeds = [42]
 r2s = []
 
 
@@ -30,31 +30,33 @@ for seed in seeds:
     h2o_data = h2o.H2OFrame(df, destination_frame="CatNum")
 
     train, test, valid = h2o_data.split_frame([0.7, 0.15], seed=seed)
+    train_valid = h2o.H2OFrame.rbind(train, valid)
     train.frame_id = "Train"
     valid.frame_id = "Valid"
     test.frame_id = "Test"
 
     grid_params = dict()
     grid_params['ntrees'] = [120]   # 120
-    grid_params['max_depth'] = [30]  # 20 - 30
-    grid_params['min_rows'] = [10]  # 10
-    grid_params['nbins'] = [32]  # 32
-    grid_params['nbins_cats'] = [100]  # important
+    grid_params['max_depth'] = [20]  # [5, 10, 20, 40, 50]  # Best:30
+    grid_params['min_rows'] = [5]  # 5, 10, 20, 40, 50  # Best:10
+    #grid_params['nbins'] = [100]  # 32
+    # grid_params['nbins_cats'] = [100]  # important
     grid_params['seed'] = [seed]
     grid_params['sample_rate'] = [1]  # 0.99 important
     grid_params['col_sample_rate_per_tree'] = [1]  # 1 important
-    grid_params['stopping_rounds'] = [10]  #
+    grid_params['stopping_rounds'] = [5]  #
     # grid_params['stopping_tolerance'] = [0.001]
 
-    drf_grid = H2OGridSearch(model=H2ORandomForestEstimator(nfolds=5, keep_cross_validation_predictions=True),
+    drf_grid = H2OGridSearch(model=H2ORandomForestEstimator(keep_cross_validation_predictions=True, nfolds=5),
                              hyper_params=grid_params)
     print("Training")
     X = df[df.columns.drop('porosity')].columns.values.tolist()
     y = "porosity"
     drf_grid.train(x=X,
                    y=y,
-                   training_frame=train,
-                   validation_frame=valid)
+                   training_frame=train_valid,
+                   #validation_frame=valid
+                   )
     print("Importance results")
     # drf_grid.show()
     grid_sorted = drf_grid.get_grid(sort_by='mean_residual_deviance', decreasing=False)
@@ -64,7 +66,7 @@ for seed in seeds:
     best_model.keep_cross_validation_predictions = True
 
     r2, mae, mrd = best_model_results(best_model, test, train)
-    best_model.plot()
+    # best_model.plot()
     plt.savefig(f'images/results/train_plot/DRF_{seed}', bbox_inches='tight')
 
     print(best_model.actual_params['max_depth'])
@@ -72,6 +74,7 @@ for seed in seeds:
     print(best_model.actual_params['sample_rate'])
     print(best_model.actual_params['col_sample_rate_per_tree'])
     print(best_model.actual_params['ntrees'])
+    print(best_model.actual_params)
 
     now = datetime.datetime.now().strftime("%y%m%d%H%M")
     h2o.save_model(best_model, path="temp/best_DRF_model", filename=f"DRF_{now}_{seed}_{r2}_{mae}_{mrd}", force=True)

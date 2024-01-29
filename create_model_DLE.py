@@ -16,7 +16,7 @@ df = df[DataParser.selected_cols]
 df = DataParser.preprocess_dropna(df)
 opt_save = True
 ratios = [0.7, 0.15]  # training ratios [train (valid+test)/2]
-seeds = [6, 18, 25, 32, 42]  # 6, 18, 25, 32, 42
+seeds = [42]  # 6, 18, 25, 32, 42
 r2s = []
 
 start = time.time()
@@ -29,12 +29,13 @@ cv = True
 
 for seed in seeds:
     train, test, valid = h2o_data.split_frame(ratios, seed=seed)
+    train_valid = h2o.H2OFrame.rbind(train, valid)
     train.frame_id = "Train"
     valid.frame_id = "Valid"
     test.frame_id = "Test"
     grid_params = dict()
-    grid_params['hidden'] = [[100, 50, 25]]  # [50, 25, 10] [100, 50, 25] [400, 200, 100] [800,400,200],[128, 64, 32, 16,4]
-    grid_params['epochs'] = [800]  # 1000
+    grid_params['hidden'] = [ [100, 50, 25]]  #  [100, 50, 25], [50, 25, 10], [200, 100, 50], [100, 50, 25, 10], [50, 25, 10], [100, 50, 25, 10, 5], [2000, 70, 50, 25, 10]]  #  Best: 100/50/25
+    grid_params['epochs'] = [2000]  # 1000
     grid_params['activation'] = ['Rectifier']  # 'TanhWithDropout', 'RectifierWithDropout'
     # grid_params['tweedie_power'] = [1.2]
     # grid_params['score_interval'] = [5.0, 3.0, 10.0]
@@ -45,18 +46,19 @@ for seed in seeds:
     grid_params['loss'] = ['Absolute']  # 'Quadratic', 'Huber'
     grid_params['reproducible'] = [False]  # False
     grid_params['seed'] = [seed]
-    grid_params['stopping_rounds'] = [20]  # 20
+    grid_params['stopping_rounds'] = [10]  # 20
     #grid_params['variable_importances'] = [True]
 
-    rnn_grid = H2OGridSearch(model=H2ODeepLearningEstimator(standardize=True, seed=seed),
+    rnn_grid = H2OGridSearch(model=H2ODeepLearningEstimator(standardize=True, seed=seed, keep_cross_validation_predictions=True, nfolds=5),
                              hyper_params=grid_params)
     print("Training")
     X = df[df.columns.drop('porosity')].columns.values.tolist()
     y = "porosity"
     rnn_grid.train(x=X,
                    y=y,
-                   training_frame=train,
-                   validation_frame=valid)
+                   training_frame=train_valid,
+                   # validation_frame=valid
+    )
     print("Importance results")
     # drf_grid.show()
     grid_sorted = rnn_grid.get_grid(sort_by="mean_residual_deviance", decreasing=False)

@@ -16,11 +16,14 @@ pd.set_option('display.max_columns', None)
 # Load generated df
 DataParser = data_parser.DataParser()
 df = DataParser.load_complete_data_from_pickle()
-df = df[DataParser.selected_cols]
+df = DataParser.preprocess_drop_not_sublimated(df)
+
+df = df[DataParser.selected_cols_v2]
 df = DataParser.preprocess_dropna(df)
+
 opt_save = True
 ratios = [0.7, 0.15]  # training ratios [train (valid+test)/2]
-seeds = [6, 18, 25, 32, 42]  # 6, 18, 25, 32, 42
+seeds = [42]  # 6, 18, 25, 32, 42
 r2s = []
 
 
@@ -29,6 +32,7 @@ for seed in seeds:
     # Split the dataset into a train and valid set:
     h2o_data = h2o.H2OFrame(df, destination_frame="CatNum")
     train, valid, test = h2o_data.split_frame(ratios, seed=seed)
+    train_valid = h2o.H2OFrame.rbind(train, valid)
     train.frame_id = "Train"
     valid.frame_id = "Valid"
     test.frame_id = "Test"
@@ -37,16 +41,16 @@ for seed in seeds:
     grid_params['learn_rate'] = [0.01]  # Best:0.01
     # grid_params['sample_rate'] = [0.95]  # important
     # grid_params['col_sample_rate_per_tree'] = [1]  # important
-    grid_params['min_rows'] = [5]  # important. Best:20
-    grid_params['max_depth'] = [15]  # important 15 - 5. Best:10
-    grid_params['nbins'] = [100]  # important
-    grid_params['nbins_cats'] = [500]  # important
+    grid_params['min_rows'] = [5]  # important. Best:5
+    grid_params['max_depth'] = [15]  # important 15 - 5. Best:5
+   # grid_params['nbins'] = [100]  # important
+   #grid_params['nbins_cats'] = [500]  # important
     grid_params['seed'] = [seed]
     grid_params['stopping_metric'] = ['deviance']
     grid_params['stopping_rounds'] = [5]  # 50
     grid_params['seed'] = seed
     # grid_params['score_each_iteration'] = ['True']  # not gridable
-    model = H2OGradientBoostingEstimator()
+    model = H2OGradientBoostingEstimator(keep_cross_validation_predictions=True, nfolds=5)
     models_grid = H2OGridSearch(model,
                                 hyper_params=grid_params)
 
@@ -55,8 +59,7 @@ for seed in seeds:
     y = "porosity"
     models_grid.train(x=X,
                       y=y,
-                      training_frame=train,
-                      validation_frame=valid)
+                      training_frame=train_valid)
 
     grid_sorted = models_grid.get_grid(sort_by='mean_residual_deviance', decreasing=False)
     print("Getting best model")

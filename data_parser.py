@@ -23,6 +23,16 @@ class DataParser:
                                       'time_sub',
                                       'time_sinter_1', 'temp_sinter_1', 'vf_total', 'porosity']
 
+        self.selected_cols_v2 = ['name_part1', 'name_part2',
+                                 'name_fluid1',  # 'sublimated', 'technique', 'direction',
+                                 'material_group',
+                                 'name_mold_mat',
+                                 'name_disp_1',
+                                 'name_bind1', 'wf_bind_1',
+                                 'temp_cold', 'cooling_rate',
+                                 'time_sub',
+                                 'time_sinter_1', 'temp_sinter_1', 'vf_total', 'porosity']
+
         self.selected_cols_nameparts = ['name_part1', 'name_part2',  # material
                                         'name_fluid1', 'sublimated', 'technique', 'direction',
                                         'material_group',
@@ -33,6 +43,7 @@ class DataParser:
         # Selected Cols:
         self.selected_cols = self.selected_cols_reduced
         self.target = 'porosity'
+
         # technique', 'sublimated' only have one value / direction' only has 600 rows
 
     def load_complete_data_from_mysql(self):
@@ -54,17 +65,23 @@ class DataParser:
         df = df[df['porosity'].notna()]
         return df
 
-    def rename_columns(self, df):
-        df.rename(columns={'name_part1': 'Solid Name', 'name_part2': 'Solid Name 2', 'material': 'Sample Name',  # name_part2
-                           'name_fluid1': 'Fluid Name', 'sublimated': 'Sublimated?', 'technique': 'Technique',
-                           'direction': 'F. Direction',
-                           'material_group': 'Group',
-                           'temp_cold': 'Temp. Cold', 'cooling_rate': 'Cooling Rate',
-                           'time_sub': "Time Sub",
-                           'time_sinter_1': 'Time Sinter', 'temp_sinter_1': 'Temp. Sinter', 'vf_total': 'Solid Loading',
-                           'porosity': 'porosity'
+    def preprocess_drop_not_sublimated(self, df):
+        # Drop samples with no porosity values
+        df = df[df['sublimated'] != 'N']
+        return df
 
-                           }, inplace=True)
+    def rename_columns(self, df):
+        df.rename(
+            columns={'name_part1': 'Solid Name', 'name_part2': 'Solid Name 2', 'material': 'Sample Name',  # name_part2
+                     'name_fluid1': 'Fluid Name', 'sublimated': 'Sublimated?', 'technique': 'Technique',
+                     'direction': 'F. Direction',
+                     'material_group': 'Group',
+                     'temp_cold': 'Temp. Cold', 'cooling_rate': 'Cooling Rate',
+                     'time_sub': "Time Sub",
+                     'time_sinter_1': 'Time Sinter', 'temp_sinter_1': 'Temp. Sinter', 'vf_total': 'Solid Loading',
+                     'porosity': 'porosity'
+
+                     }, inplace=True)
         return df
 
 

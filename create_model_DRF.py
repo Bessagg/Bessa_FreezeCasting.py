@@ -46,7 +46,7 @@ def generateTreeImage(gv_file_path, image_file_path, tree_id):
 # Load generated df
 DataParser = data_parser.DataParser()
 df = DataParser.load_complete_data_from_pickle()
-df = df[DataParser.selected_cols_reduced]
+df = df[DataParser.selected_cols]
 df = DataParser.preprocess_dropna(df)
 opt_save = True
 seeds = [6, 18, 25, 32, 42]
@@ -65,12 +65,12 @@ whether predicting for a class or numeric value. """
 h2o.init()
 # Split the dataset into a train and valid set:
 h2o_data = h2o.H2OFrame(df, destination_frame="CatNum")
-train, valid, test = h2o_data.split_frame([0.6, 0.2], seed=1234)
+train, valid, test = h2o_data.split_frame([0., 0.2], seed=1234)
 train.frame_id = "Train"
 valid.frame_id = "Valid"
 test.frame_id = "Test"
 
-model = H2ORandomForestEstimator(model_id="DRF_Freeze_Casting", ntrees=50, max_depth=20, nfolds=10,
+model = H2ORandomForestEstimator(model_id="DRF_Freeze_Casting", ntrees=50, max_depth=20, nfolds=5,
                                  min_rows=10
                                  )
 

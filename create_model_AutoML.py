@@ -8,10 +8,10 @@ import h2o.estimators
 # Load generated df
 DataParser = data_parser.DataParser()
 df = DataParser.load_complete_data_from_pickle()
-df = df[DataParser.selected_cols_reduced]
+df = df[DataParser.selected_cols_v2]
 df = DataParser.preprocess_dropna(df)
 opt_save = True
-seeds = [6, 18, 25, 32, 42]
+seeds = [42]
 r2s = []
 ratios = [0.7, 0.15]  # training ratios [train (valid+test)/2]
 
@@ -29,21 +29,22 @@ for seed in seeds:
     h2o.init(nthreads=-1, min_mem_size_GB=8)
     # Split the dataset into a train and valid set:
     train, valid, test = h2o_data.split_frame([0.7, 0.15],
-                                              seed=seed)  # no need for validation frame as cross validation is enabled
+                                              seed=seed)
     train.frame_id = "Train"
     valid.frame_id = "Valid"
     test.frame_id = "Test"
+    train_valid = h2o.H2OFrame.rbind(train, valid)
 
-    aml = H2OAutoML(max_models=max_models, seed=seed, stopping_metric='AUTO')
+    aml = H2OAutoML(max_models=max_models, seed=seed, stopping_metric='AUTO', nfolds=5, keep_cross_validation_predictions=True)
     print("Training")
     X = df[df.columns.drop('porosity')].columns.values.tolist()
     y = "porosity"
     time.sleep(2)
     train, valid, test = h2o_data.split_frame([0.7, 0.15],
-                                              seed=seed)  # no need for validation frame as cross validation is enabled
+                                              seed=seed)  # no need for validation frame if cross validation is enabled
+
     aml.train(x=X, y=y,
-              training_frame=train,
-              validation_frame=valid)
+              training_frame=train_valid)
     time.sleep(5)
     best_model = aml.get_best_model(criterion="deviance")
     data = dict()
