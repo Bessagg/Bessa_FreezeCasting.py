@@ -79,7 +79,8 @@ class DataParser:
                      'temp_cold': 'Temp. Cold', 'cooling_rate': 'Cooling Rate',
                      'time_sub': "Time Sub",
                      'time_sinter_1': 'Time Sinter', 'temp_sinter_1': 'Temp. Sinter', 'vf_total': 'Solid Loading',
-                     'porosity': 'porosity'
+                     'porosity': 'porosity', 'name_disp_1': 'Disp. Name 1', 'name_bind_1': 'Binder Name', 'wf_bind_1': 'Binder wf.',
+                     'name_mold_mat': 'Mold Material Name'
 
                      }, inplace=True)
         return df

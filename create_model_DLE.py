@@ -22,8 +22,12 @@ r2s = []
 start = time.time()
 h2o.init(nthreads=-1, min_mem_size="8g")
 # Split the dataset into a train and valid set:
-h2o_data = h2o.H2OFrame(df, destination_frame="CatNum")
+col_dtypes = {'name_part1': 'enum', 'name_part2': 'enum', 'name_fluid1': 'enum', 'name_mold_mat': 'enum',
+              'name_disp_1': 'enum', 'name_bind1': 'enum', 'wf_bind_1': 'numeric',
+              'material_group': 'enum', 'temp_cold': 'numeric', 'cooling_rate': 'numeric', 'time_sub': 'numeric',
+              'time_sinter_1': 'numeric', 'temp_sinter_1': 'numeric', 'vf_total': 'numeric', 'porosity': 'numeric'}
 
+h2o_data = h2o.H2OFrame(df, destination_frame="CatNum", column_types=col_dtypes)
 
 cv = True
 
@@ -35,7 +39,7 @@ for seed in seeds:
     test.frame_id = "Test"
     grid_params = dict()
     grid_params['hidden'] = [ [100, 50, 25]]  #  [100, 50, 25], [50, 25, 10], [200, 100, 50], [100, 50, 25, 10], [50, 25, 10], [100, 50, 25, 10, 5], [2000, 70, 50, 25, 10]]  #  Best: 100/50/25
-    grid_params['epochs'] = [2000]  # 1000
+    grid_params['epochs'] = [1000]  # 1000
     grid_params['activation'] = ['Rectifier']  # 'TanhWithDropout', 'RectifierWithDropout'
     # grid_params['tweedie_power'] = [1.2]
     # grid_params['score_interval'] = [5.0, 3.0, 10.0]
@@ -46,7 +50,7 @@ for seed in seeds:
     grid_params['loss'] = ['Absolute']  # 'Quadratic', 'Huber'
     grid_params['reproducible'] = [False]  # False
     grid_params['seed'] = [seed]
-    grid_params['stopping_rounds'] = [10]  # 20
+    grid_params['stopping_rounds'] = [7]  # 20
     #grid_params['variable_importances'] = [True]
 
     rnn_grid = H2OGridSearch(model=H2ODeepLearningEstimator(standardize=True, seed=seed, keep_cross_validation_predictions=True, nfolds=5),

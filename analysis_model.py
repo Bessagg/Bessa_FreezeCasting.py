@@ -11,7 +11,7 @@ import numpy as np
 # Load generated df
 DataParser = data_parser.DataParser()
 df = DataParser.load_complete_data_from_pickle()
-df = df[DataParser.selected_cols]
+df = df[DataParser.selected_cols_v2]
 df = DataParser.preprocess_dropna(df)
 opt_save = True
 selected_models_seed = 42
@@ -49,6 +49,7 @@ for model in models:
     data['mae'] = perf[perf[''] == 'mae']['mean'].values[0]
     data['mae_t'] = model.split("_")[4]
     data['mrd'] = models[model].mean_residual_deviance()
+    data['mrd'] = perf[perf[''] == 'mean_residual_deviance']['mean'].values[0]
     data['mrd_t'] = model.split("_")[5]
     new_row = df_r.from_dict([data])
     df_r = pd.concat([df_r, new_row], ignore_index=True)
@@ -59,10 +60,15 @@ for model in models:
         # if model.split("_")[0] == "DLE":
         #     continue
         df_var_importance = pd.concat([df_var_importance, var_importance], ignore_index=True)
+    print(model, "\n", models[model].cross_validation_metrics_summary())
 
 # Test best models for selected seed and compare
 # Load DF
-h2o_data = h2o.H2OFrame(df, destination_frame="CatNum")
+col_dtypes = {'name_part1': 'enum', 'name_part2': 'enum', 'name_fluid1': 'enum',
+              'material_group': 'enum', 'temp_cold': 'numeric', 'cooling_rate': 'numeric', 'time_sub': 'numeric',
+              'time_sinter_1': 'numeric', 'vf_total': 'numeric', 'porosity': 'numeric'}
+
+h2o_data = h2o.H2OFrame(df, destination_frame="CatNum", column_types=col_dtypes)
 train, test, valid = h2o_data.split_frame([0.7, 0.15], seed=selected_models_seed)
 train_valid = h2o.H2OFrame.rbind(train, valid)
 
@@ -82,7 +88,8 @@ for model_path in selected_seed_models:
     model_name = model_path.split('\\')[-1]
     model_type = model_path.split("_")[0]
     if model_type in ['GBM', "DRF"]:
-        models[model_name].download_mojo('mojos')  # download mojos  # Sometimes has to manual download: Run this line in console rather than script
+        models[model_name].download_mojo(
+            'mojos')  # download mojos  # Sometimes has to manual download: Run this line in console rather than script
     predicted = models[model_name].predict(test).as_data_frame()
 
     # Model Results
@@ -101,7 +108,7 @@ for model_path in selected_seed_models:
     df_true = pd.concat([df_true, df_model_results], axis=1)
     df_true = df_true.loc[:, ~df_true.columns.duplicated()]  # remove duplicate columns
     # Model performance plot
-    plt.figure(figsize=(8, 8))
+    plt.figure(figsize=(18, 12))
     ax = sns.scatterplot(x='porosity', y=model_type, data=df_true, hue=f'error_abs_{model_type}', palette=pallete)
     norm = plt.Normalize(0, 0.4)  # set min and max for color_bar
     sm = plt.cm.ScalarMappable(cmap=pallete, norm=norm)
@@ -118,10 +125,11 @@ for model_path in selected_seed_models:
     plt.savefig(f'images/results/{model_type}_perf', bbox_inches='tight')
 
     # Error distribution plot
-    plt.figure(figsize=(8, 8))
+    plt.figure(figsize=(18, 12))
     top3_material_group = df_true.material_group.value_counts().iloc[:3].index.to_list()
     df_true_mg = df_true[(df_true['material_group'].isin(top3_material_group))]
-    bx = sns.histplot(data=df_true_mg, x=f"error_{model_type}", hue="material_group", bins=20)
+    bx = sns.histplot(data=df_true_mg, x=f"error_{model_type}", hue="material_group", bins=20,
+                      palette=sns.color_palette("hls", 3))
     bx.set_xlabel("Error", fontsize=20)
     bx.set_ylabel(f"Sample count - {model_type} - seed 42", fontsize=20)
     bx.tick_params(labelsize=20)
@@ -130,31 +138,27 @@ for model_path in selected_seed_models:
     plt.show()
     plt.savefig(f'images/results/{model_type}_error', bbox_inches='tight')
 
-# # Generate Mojos for Decision Tress
-# models["DRF_2209171340_42_0.6664_0.0848_0.0124"].download_mojo('mojos')
-# models["GBM_2209171448_42_0.6315_0.0834_0.0145"].download_mojo('mojos')
+    """Importances"""""
+    df_r[['r2', 'r2_t', 'mae', 'mae_t', 'mrd', 'mrd_t']] = df_r[['r2', 'r2_t', 'mae', 'mae_t', 'mrd', 'mrd_t']].astype(
+        "float")
 
+    # df_grouped = df_var_importance.groupby('variable').mean()
+    df_imp = df_var_importance[df_var_importance['model_type'] == model_type]
+    top_variables = df_imp.groupby('variable')['scaled_importance'].mean().nlargest(15).index.to_list()
+    top_df = df_imp.loc[df_imp['variable'].isin(top_variables)]
+    sns.set(font_scale=1.2)
+    g = sns.catplot(data=top_df, kind="bar", x="variable", y="scaled_importance", hue="model_type",
+                    palette=sns.color_palette("hls", 3))
+    sns.set(rc={'figure.figsize': (18, 12)})
+    plt.tight_layout()
+    g.set_axis_labels("Parameters", "Scaled Importance - Decision Trees")
+    g.set_xticklabels(rotation=40, ha="right")
+    sns.move_legend(g, "upper right")
+    plt.subplots_adjust(bottom=0.4)
+    plt.show()
+    plt.savefig(f'images/results/{model_type}_scaled_importance_trees.png', bbox_inches='tight')
 
 # ################################## Generate Results and Tables
-# Scaled importance Group
-df_r[['r2', 'r2_t', 'mae', 'mae_t', 'mrd', 'mrd_t']] = df_r[['r2', 'r2_t', 'mae', 'mae_t', 'mrd', 'mrd_t']].astype(
-    "float")
-
-# df_grouped = df_var_importance.groupby('variable').mean()
-top_10_variables = df_var_importance.groupby('variable')['scaled_importance'].mean()  # .nlargest(2)
-sns.set(font_scale=1.2)
-
-g = sns.catplot(data=df_var_importance, kind="bar", x="variable", y="scaled_importance", hue="model_type",
-                palette=sns.color_palette("hls", 3))
-sns.set(rc={'figure.figsize': (10, 10)})
-plt.tight_layout()
-g.set_axis_labels("Parameters", "Scaled Importance")
-g.set_xticklabels(rotation=40, ha="right")
-sns.move_legend(g, "upper right")
-plt.subplots_adjust(bottom=0.4)
-plt.show()
-plt.savefig('images/results/scaled_importance.png', bbox_inches='tight')
-
 # Model Group Results, prints and tables
 pd.set_option('display.float_format', lambda x: '%.3g' % x)
 df_r['Δr2'] = df_r['r2'] - df_r['r2_t']

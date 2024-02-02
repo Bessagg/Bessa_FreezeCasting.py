@@ -25,7 +25,7 @@ pio.renderers.default = "browser"
 # Load Data
 DataParser = data_parser.DataParser()
 df = DataParser.load_complete_data_from_pickle()
-df = df[DataParser.selected_cols]
+df = df[DataParser.selected_cols_v2]
 df = DataParser.preprocess_dropna(df)
 df = DataParser.rename_columns(df)
 

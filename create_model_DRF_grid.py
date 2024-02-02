@@ -20,14 +20,19 @@ df = DataParser.preprocess_dropna(df)
 opt_save = True
 seeds = [42]
 r2s = []
+h2o.init(nthreads=-1, min_mem_size_GB=10)
+
+col_dtypes = {'name_part1': 'enum', 'name_part2': 'enum', 'name_fluid1': 'enum', 'name_mold_mat': 'enum',
+              'name_disp_1': 'enum', 'name_bind1': 'enum', 'wf_bind_1': 'numeric',
+              'material_group': 'enum', 'temp_cold': 'numeric', 'cooling_rate': 'numeric', 'time_sub': 'numeric',
+              'time_sinter_1': 'numeric', 'temp_sinter_1': 'numeric', 'vf_total': 'numeric', 'porosity': 'numeric'}
+
+h2o_data = h2o.H2OFrame(df, destination_frame="CatNum", column_types=col_dtypes)
 
 
 for seed in seeds:
     start = time.time()
-    h2o.init(nthreads=-1, min_mem_size_GB=10)
 
-    # Split the dataset into a train and valid set:
-    h2o_data = h2o.H2OFrame(df, destination_frame="CatNum")
 
     train, test, valid = h2o_data.split_frame([0.7, 0.15], seed=seed)
     train_valid = h2o.H2OFrame.rbind(train, valid)

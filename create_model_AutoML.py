@@ -18,11 +18,15 @@ ratios = [0.7, 0.15]  # training ratios [train (valid+test)/2]
 start = time.time()
 h2o.init(nthreads=-1, min_mem_size="8g")
 # Split the dataset into a train and valid set:
-h2o_data = h2o.H2OFrame(df, destination_frame="CatNum")
+col_dtypes = {'name_part1': 'enum', 'name_part2': 'enum', 'name_fluid1': 'enum', 'name_mold_mat': 'enum',
+              'name_disp_1': 'enum', 'name_bind1': 'enum', 'wf_bind_1': 'numeric',
+              'material_group': 'enum', 'temp_cold': 'numeric', 'cooling_rate': 'numeric', 'time_sub': 'numeric',
+              'time_sinter_1': 'numeric', 'temp_sinter_1': 'numeric', 'vf_total': 'numeric', 'porosity': 'numeric'}
+
+h2o_data = h2o.H2OFrame(df, destination_frame="CatNum", column_types=col_dtypes)
 
 # Automl opts
 max_models = 10
-
 
 df_data = pd.DataFrame()
 for seed in seeds:
@@ -35,7 +39,8 @@ for seed in seeds:
     test.frame_id = "Test"
     train_valid = h2o.H2OFrame.rbind(train, valid)
 
-    aml = H2OAutoML(max_models=max_models, seed=seed, stopping_metric='AUTO', nfolds=5, keep_cross_validation_predictions=True)
+    aml = H2OAutoML(max_models=max_models, seed=seed, stopping_metric='AUTO', nfolds=5,
+                    keep_cross_validation_predictions=True)
     print("Training")
     X = df[df.columns.drop('porosity')].columns.values.tolist()
     y = "porosity"
@@ -64,8 +69,8 @@ for seed in seeds:
 
 print(df_data)
 r2, mae, mrd = df_data['r2'].mean(), df_data['mae'].mean(), df_data['mrd'].mean()
-r2, mae, mrd, diff = "{:.04f}".format(r2), "{:.04f}".format(mae), "{:.04f}".format(mrd),\
-                     "{:.04f}".format(best_model.r2() - r2)
+r2, mae, mrd, diff = "{:.04f}".format(r2), "{:.04f}".format(mae), "{:.04f}".format(mrd), \
+    "{:.04f}".format(best_model.r2() - r2)
 
 print("Mean residual deviance: ", mrd)
 print("Mean absolut error: ", mae)
@@ -74,11 +79,10 @@ print("Difference of r^2 between test and train: ", diff)
 
 now = datetime.datetime.now().strftime("%y%m%d%H%M")
 h2o.save_model(best_model, path="temp/AutoML_model", filename=f"AutoML_{now}_{seed}_{r2}_{mae}_{mrd}", force=True)
-print("Elapsed {:.04f} minutes".format((time.time() - start)/60))
+print("Elapsed {:.04f} minutes".format((time.time() - start) / 60))
 print(best_model.base_models)
 
-
-print("Elapsed {:.04f} minutes".format((time.time() - start)/60))
+print("Elapsed {:.04f} minutes".format((time.time() - start) / 60))
 df_r2 = pd.DataFrame(r2s)
 print(best_model.actual_params)
 print('Mean all r2s', df_r2.mean())
