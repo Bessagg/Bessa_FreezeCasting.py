@@ -19,29 +19,33 @@ import prince
 import plotly.io as pio
 import data_parser
 import matplotlib
+import squarify
 
 pio.renderers.default = "browser"
 
 # Load Data
 DataParser = data_parser.DataParser()
-df = DataParser.load_complete_data_from_pickle()
-df = df[DataParser.selected_cols_v2]
+df_raw = DataParser.load_complete_data_from_pickle()
+df = df_raw[DataParser.selected_cols_v2]
 df = DataParser.preprocess_dropna(df)
-df = DataParser.rename_columns(df)
+df = DataParser.rename_columns_df(df)
+df_raw_porosity = DataParser.preprocess_dropna(df_raw)  # df with all columns and all rows that have porosity
+pallete = "summer"
 
+# Samples per paper
+samples_per_paper = df_raw_porosity.groupby('paper_ID').size()
+samples_per_paper = pd.DataFrame(samples_per_paper.sort_values(ascending=False), columns=['values'])
+# Plot the TreeMap
+plt.figure(figsize=(10, 6))
+ths = 2
+# large_rectangles = samples_per_paper[samples_per_paper >= ths]
+samples_per_paper['label'] = ['' if value <= ths else value for value in samples_per_paper['values']]
+colors = sns.color_palette(pallete, len(samples_per_paper['values']))  # Choose a colormap for the TreeMap
+squarify.plot(sizes=samples_per_paper['values'], color=colors, alpha=0.7, label=samples_per_paper['label'])
+plt.axis('off')
+plt.show()
+plt.savefig(f"images/samples_per_paper.png")
 
-
-# Rename Columns and values - translate pt
-# df.rename(columns={'name_fluid1': 'Nome do Fluido', 'material': 'Nome do Sólido', 'material_group': 'Tipo da Amostra',
-#                    'temp_cold': 'Temp. Congelamento', 'cooling_rate': 'Taxa de Congel.', 'time_sub': 'Tempo de Sublim.',
-#                    'time_sinter_1': 'Tempo de Sinter.', 'temp_sinter_1': 'Temp. de Sinter.',
-#                    'porosity': 'Porosidade', 'vf_solid': 'Fração de Vol. Sól.'}, inplace=True)
-#
-# df['Nome do Fluido'].replace({'water': 'Água', 'camphene': 'Canfeno',
-#                               'acetic acid': 'Ácido acético', 'naphthalene': 'Naftaleno'}, inplace=True)
-#
-# df['Tipo da Amostra'].replace({'Ceramic': 'Cerâmico', 'Polymer': 'Polímero',
-#                               'Ceramic/Polymer': 'Cerâmica/Polímero', 'Metal/Ceramic': 'Metal/Cerâmico'}, inplace=True)
 print(df.head())
 print(f"Count of Null values out of {len(df)} rows \n", df.isnull().sum())
 # # Drop columns with less than min_n_rows as not null values
@@ -53,14 +57,7 @@ print(f"Count of Null values out of {len(df)} rows \n", df.isnull().sum())
 #
 # """technique and direction only have 610 rows and temp_cold 1643 :c """
 # print(f'Selected columns with more than {min_n_rows}: \n{df.columns}')
-# print("Rows:", len(df))
-
-# # #### Pore_strucutre plots
-# # Only select top 5 most common pore_structures
-# pore_structure_filter = df['pore_structure'].value_counts().head(5).axes[0]
-# df = df[df['pore_structure'].isin(pore_structure_filter)]
-# pd.value_counts(df['pore_structure']).plot.bar()
-# plt.figure(figsize=(16, 6))
+#
 
 # #################################### Correlation heatmap Numerical only
 plt.figure(figsize=(18, 12))
@@ -71,13 +68,32 @@ plt.subplots_adjust(left=0.21, right=1.05, top=0.95, bottom=0.3)
 heatmap = sns.heatmap(df_num.corr(), vmin=-1, vmax=1, annot=True, cmap='BrBG', fmt=".2%", annot_kws={"fontsize": 20})
 heatmap.set_xticklabels(heatmap.get_xmajorticklabels(), fontsize=28)
 heatmap.set_yticklabels(heatmap.get_ymajorticklabels(), fontsize=28)
-heatmap.set_xticklabels(heatmap.get_xticklabels(), rotation=45, horizontalalignment='right')
-# heatmap.set_yticklabels(heatmap.get_yticklabels(), rotation=30, horizontalalignment='right')
+heatmap.set_xticklabels(heatmap.get_xticklabels(), rotation=38, horizontalalignment='right')
+heatmap.set_yticklabels(heatmap.get_yticklabels(), rotation=30, horizontalalignment='right')
 # heatmap.set_title('Matriz de Correlação', fontdict={'fontsize': 18}, pad=12)
 print("Correlation matrix \n")
 plt.savefig(f"images/Correlation.png")
-plt.savefig(f"images/Correlation.eps", format='eps')
 # df.corr()['porosity']
+
+# Dis Plot Numerical
+# for col in df_num:
+#     sns.displot(df, x=col, hue='Group', multiple="stack", stat="density", common_norm=False)
+#     plt.savefig(f"images/Num_dist_{col}.png")
+#
+#
+plt.close('all')
+# Dist Plot Numerical
+order = df['Group'].value_counts().index.to_list()
+df['group_order'] = df['Group'].astype(pd.CategoricalDtype(categories=order, ordered=True))
+df_num_dist = df.sort_values(by='group_order')  # order raw df for numerical distribution plot
+for col in df_num:
+    sns.set(font_scale=1.5)
+    g = sns.FacetGrid(df_num_dist, row='Group',
+                      height=1.6, aspect=4)
+    g.map(sns.kdeplot, col, bw_adjust=.6)
+    g.set_ylabels('Density')
+    plt.savefig(f"images/num_dist_{col}.png")
+
 
 
 # #################################### Categorical Analysis
@@ -86,8 +102,6 @@ df_str = (df.select_dtypes(include=[object]))
 # df_str = (df.select_dtypes(include=[object])).dropna()
 count_filter_n = 50
 rank_filter_n = 5
-
-
 plt.close('all')
 # Count of categorical data
 for col in df_str.columns:
@@ -108,14 +122,12 @@ for col in df_str.columns:
     f.tight_layout()
     f.subplots_adjust(top=0.9)
     plt.savefig(f"images/Count of {col}.png")
-    plt.savefig(f"images/Count of {col}.eps", bbox_inches='tight', format='eps')
 
     plt.show()
 # plt.close("all")
 
 
 # Categorical data Porosity Distribution
-
 for col in df_str.columns:
     sns.set(font_scale=1.5)
     filtered_df = df[df[col].notnull()]  # Remove null in column
@@ -126,11 +138,10 @@ for col in df_str.columns:
     filtered_df = filtered_df[filtered_df[col].isin(selected_filter)]
     g = sns.FacetGrid(filtered_df, row=col,
                       height=1.6, aspect=4)
-    g.map(sns.kdeplot, 'porosity')
+    g.map(sns.kdeplot, DataParser.target)
     g.set_ylabels('Density')
     print(df_str[col].value_counts(), '\n')
     plt.savefig(f"images/Count Distribution of {col}.png", bbox_inches='tight')
-    plt.savefig(f"images/Count Distribution of {col}.eps", bbox_inches='tight', format='eps')
 
     # rank_filter = df_str[col].value_counts().head(5)  # list to filter by rank
 
@@ -200,7 +211,7 @@ pipeline = Pipeline([('scaling', StandardScaler()), ('pca', PCA(n_components=n_c
 pca = PCA(n_components=n_components)
 # X = df_num[df_num.columns.drop('Porosidade')]
 X = df_num[df_num.columns]
-y = df_num['porosity']
+y = DataParser.target
 
 # components = pca.fit_transform(df_num)
 # components = pipeline.fit_transform(df_num)
@@ -209,7 +220,7 @@ components = pca.fit_transform(X_scaled)
 # print(pd.DataFrame(pca.components_, columns=X_scaled.columns, index=['PC-1', 'PC-2', 'PC-3', 'PC-4', 'PC-5']))
 total_var = pca.explained_variance_ratio_.sum() * 100
 labels = {str(i): f"PC {i + 1}" for i in range(n_components)}
-labels['color'] = 'Porosity'
+labels['color'] = DataParser.target
 fig = px.scatter_matrix(
     components,
     color=y,
@@ -220,12 +231,13 @@ fig = px.scatter_matrix(
 fig.update_traces(diagonal_visible=False)
 fig.show()
 
-# 3D plot Variance
-fig = px.scatter_3d(
-    components, x=0, y=1, z=2, color=df_num['porosity'], title=f'Total Explained Variance: {total_var:.2f}%',
-    labels=labels
-)
-fig.show()
-exp_var_cumul = np.cumsum(pca.explained_variance_ratio_)
-px.area(x=range(1, exp_var_cumul.shape[0] + 1), y=exp_var_cumul,
-        labels={"x": "# Components", "y": "Explained Variance"})
+# # 3D plot Variance
+# fig = px.scatter_3d(
+#     components, x=0, y=1, z=2, color=DataParser.target, title=f'Total Explained Variance: {total_var:.2f}%',
+#     labels=labels
+# )
+# fig.show()
+# exp_var_cumul = np.cumsum(pca.explained_variance_ratio_)
+# px.area(x=range(1, exp_var_cumul.shape[0] + 1), y=exp_var_cumul,
+#         labels={"x": "# Components", "y": "Explained Variance"})
+# plt.close('all')
