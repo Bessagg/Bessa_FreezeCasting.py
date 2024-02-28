@@ -12,31 +12,33 @@ import h2o
 DataParser = data_parser.DataParser()
 df = DataParser.load_complete_data_from_pickle()
 # df = df[DataParser.selected_cols_reduced]
-df = df[DataParser.selected_cols]
+df = df[DataParser.selected_cols_v2]
 df = DataParser.preprocess_dropna(df)
+df = DataParser.rename_columns_df(df)
 opt_save = True
-ratios = [0.7, 0.15]  # training ratios [train (valid+test)/2]
 seeds = [42]  # 6, 18, 25, 32, 42
 r2s = []
 
 start = time.time()
 h2o.init(nthreads=-1, min_mem_size="8g")
 # Split the dataset into a train and valid set:
-col_dtypes = {'name_part1': 'enum', 'name_part2': 'enum', 'name_fluid1': 'enum', 'name_mold_mat': 'enum',
-              'name_disp_1': 'enum', 'name_bind1': 'enum', 'wf_bind_1': 'numeric',
-              'material_group': 'enum', 'temp_cold': 'numeric', 'cooling_rate': 'numeric', 'time_sub': 'numeric',
-              'time_sinter_1': 'numeric', 'temp_sinter_1': 'numeric', 'vf_total': 'numeric', 'porosity': 'numeric'}
-
-h2o_data = h2o.H2OFrame(df, destination_frame="CatNum", column_types=col_dtypes)
+h2o_data = h2o.H2OFrame(df, destination_frame="CatNum", column_types=DataParser.col_dtypes_renamed)
 
 cv = True
 
 for seed in seeds:
-    train, test, valid = h2o_data.split_frame(ratios, seed=seed)
-    train_valid = h2o.H2OFrame.rbind(train, valid)
+    # train, test, valid = h2o_data.split_frame(ratios, seed=seed)
+    train, test = h2o_data.split_frame(ratios=DataParser.ratios, seed=seed)
+
+    # train_valid = h2o.H2OFrame.rbind(train, valid)
     train.frame_id = "Train"
-    valid.frame_id = "Valid"
+    # valid.frame_id = "Valid"
     test.frame_id = "Test"
+    X = h2o_data.columns
+    X.remove(DataParser.target)
+    y = DataParser.target
+
+
     grid_params = dict()
     grid_params['hidden'] = [ [100, 50, 25]]  #  [100, 50, 25], [50, 25, 10], [200, 100, 50], [100, 50, 25, 10], [50, 25, 10], [100, 50, 25, 10, 5], [2000, 70, 50, 25, 10]]  #  Best: 100/50/25
     grid_params['epochs'] = [1000]  # 1000
@@ -56,11 +58,9 @@ for seed in seeds:
     rnn_grid = H2OGridSearch(model=H2ODeepLearningEstimator(standardize=True, seed=seed, keep_cross_validation_predictions=True, nfolds=5),
                              hyper_params=grid_params)
     print("Training")
-    X = df[df.columns.drop('porosity')].columns.values.tolist()
-    y = "porosity"
     rnn_grid.train(x=X,
                    y=y,
-                   training_frame=train_valid,
+                   training_frame=train,
                    # validation_frame=valid
     )
     print("Importance results")
@@ -88,6 +88,6 @@ for seed in seeds:
 
 print("Elapsed {:.04f} minutes".format((time.time() - start)/60))
 df_r2 = pd.DataFrame(r2s)
-print(best_model.actual_params)
+# print(best_model.actual_params)
 print('Mean all r2s', df_r2.mean())
 print(df_r2)

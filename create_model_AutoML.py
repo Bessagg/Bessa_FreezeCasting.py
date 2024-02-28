@@ -10,20 +10,15 @@ DataParser = data_parser.DataParser()
 df = DataParser.load_complete_data_from_pickle()
 df = df[DataParser.selected_cols_v2]
 df = DataParser.preprocess_dropna(df)
+df = DataParser.rename_columns_df(df)
 opt_save = True
 seeds = [42]
 r2s = []
-ratios = [0.7, 0.15]  # training ratios [train (valid+test)/2]
 
 start = time.time()
 h2o.init(nthreads=-1, min_mem_size="8g")
 # Split the dataset into a train and valid set:
-col_dtypes = {'name_part1': 'enum', 'name_part2': 'enum', 'name_fluid1': 'enum', 'name_mold_mat': 'enum',
-              'name_disp_1': 'enum', 'name_bind1': 'enum', 'wf_bind_1': 'numeric',
-              'material_group': 'enum', 'temp_cold': 'numeric', 'cooling_rate': 'numeric', 'time_sub': 'numeric',
-              'time_sinter_1': 'numeric', 'temp_sinter_1': 'numeric', 'vf_total': 'numeric', 'porosity': 'numeric'}
-
-h2o_data = h2o.H2OFrame(df, destination_frame="CatNum", column_types=col_dtypes)
+h2o_data = h2o.H2OFrame(df, destination_frame="CatNum", column_types=DataParser.col_dtypes_renamed)
 
 # Automl opts
 max_models = 10
@@ -32,30 +27,28 @@ df_data = pd.DataFrame()
 for seed in seeds:
     h2o.init(nthreads=-1, min_mem_size_GB=8)
     # Split the dataset into a train and valid set:
-    train, valid, test = h2o_data.split_frame([0.7, 0.15],
-                                              seed=seed)
-    train.frame_id = "Train"
-    valid.frame_id = "Valid"
-    test.frame_id = "Test"
-    train_valid = h2o.H2OFrame.rbind(train, valid)
+    train, test = h2o_data.split_frame(ratios=DataParser.ratios, seed=seed)
 
+    # train, valid, test = h2o_data.split_frame([0.7, 0.15], seed=seed)
+    train.frame_id = "Train"
+    # valid.frame_id = "Valid"
+    test.frame_id = "Test"
+    # train_valid = h2o.H2OFrame.rbind(train, valid)
+    X = h2o_data.columns
+    X.remove(DataParser.target)
+    y = DataParser.target
     aml = H2OAutoML(max_models=max_models, seed=seed, stopping_metric='AUTO', nfolds=5,
                     keep_cross_validation_predictions=True)
     print("Training")
-    X = df[df.columns.drop('porosity')].columns.values.tolist()
-    y = "porosity"
-    time.sleep(2)
-    train, valid, test = h2o_data.split_frame([0.7, 0.15],
-                                              seed=seed)  # no need for validation frame if cross validation is enabled
 
-    aml.train(x=X, y=y,
-              training_frame=train_valid)
+    time.sleep(2)
+    aml.train(x=X, y=y, training_frame=train)
     time.sleep(5)
     best_model = aml.get_best_model(criterion="deviance")
     data = dict()
     data['seed'] = seed
-    train, test, valid = h2o_data.split_frame([0.7, 0.15], seed=seed)
     r2 = best_model.model_performance(test_data=test)['r2']
+    r2_t = best_model.model_performance(train)['r2']
     mae = best_model.model_performance(test_data=test)['mae']
     mrd = best_model.model_performance(test_data=test)['mean_residual_deviance']
     data['r2'], data['mae'], data['mrd'] = r2, mae, mrd
@@ -84,6 +77,6 @@ print(best_model.base_models)
 
 print("Elapsed {:.04f} minutes".format((time.time() - start) / 60))
 df_r2 = pd.DataFrame(r2s)
-print(best_model.actual_params)
+# print(best_model.actual_params)
 print('Mean all r2s', df_r2.mean())
 print(df_r2)

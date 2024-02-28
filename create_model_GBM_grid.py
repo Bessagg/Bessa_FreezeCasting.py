@@ -17,30 +17,32 @@ pd.set_option('display.max_columns', None)
 DataParser = data_parser.DataParser()
 df = DataParser.load_complete_data_from_pickle()
 df = DataParser.preprocess_drop_not_sublimated(df)
-
 df = df[DataParser.selected_cols_v2]
 df = DataParser.preprocess_dropna(df)
+df = DataParser.rename_columns_df(df)
+
 
 opt_save = True
-ratios = [0.7, 0.15]  # training ratios [train (valid+test)/2]
+ratios = [0.8]  # train, test ratio
 seeds = [42]  # 6, 18, 25, 32, 42
 r2s = []
 
+h2o.init(nthreads=-1, min_mem_size_GB=8)
+# Split the dataset into a train and valid set:
+h2o_data = h2o.H2OFrame(df, destination_frame="CatNum", column_types=DataParser.col_dtypes_renamed)
+h2o_data = DataParser.rename_columns_h2o(h2o_data)
+
 
 for seed in seeds:
-    h2o.init(nthreads=-1, min_mem_size_GB=8)
-    # Split the dataset into a train and valid set:
-    col_dtypes = {'name_part1': 'enum', 'name_part2': 'enum', 'name_fluid1': 'enum', 'name_mold_mat': 'enum',
-                  'name_disp_1': 'enum', 'name_bind1': 'enum', 'wf_bind_1': 'numeric',
-                  'material_group': 'enum', 'temp_cold': 'numeric', 'cooling_rate': 'numeric', 'time_sub': 'numeric',
-                  'time_sinter_1': 'numeric', 'temp_sinter_1': 'numeric', 'vf_total': 'numeric', 'porosity': 'numeric'}
-
-    h2o_data = h2o.H2OFrame(df, destination_frame="CatNum", column_types=col_dtypes)
-    train, valid, test = h2o_data.split_frame(ratios, seed=seed)
-    train_valid = h2o.H2OFrame.rbind(train, valid)
+    train, test = h2o_data.split_frame(ratios=ratios, seed=seed)
+    # train, test, valid = h2o_data.split_frame([0.7, 0.15], seed=seed)
     train.frame_id = "Train"
-    valid.frame_id = "Valid"
+    # valid.frame_id = "Valid"
     test.frame_id = "Test"
+    X = h2o_data.columns
+    X.remove(DataParser.target)
+    y = DataParser.target
+
     grid_params = dict()
     grid_params['ntrees'] = [1000]  # Best:4000
     grid_params['learn_rate'] = [0.01]  # Best:0.01
@@ -56,15 +58,13 @@ for seed in seeds:
     grid_params['seed'] = seed
     # grid_params['score_each_iteration'] = ['True']  # not gridable
     model = H2OGradientBoostingEstimator(keep_cross_validation_predictions=True, nfolds=5)
-    models_grid = H2OGridSearch(model,
-                                hyper_params=grid_params)
+    models_grid = H2OGridSearch(model, hyper_params=grid_params)
 
     print("Training")
-    X = df[df.columns.drop('porosity')].columns.values.tolist()
-    y = "porosity"
+
     models_grid.train(x=X,
                       y=y,
-                      training_frame=train_valid)
+                      training_frame=train)
 
     grid_sorted = models_grid.get_grid(sort_by='mean_residual_deviance', decreasing=False)
     print("Getting best model")
@@ -84,13 +84,13 @@ for seed in seeds:
     model_name = f"GBM_{now}_{seed}_{r2}_{mae}_{mrd}"
     if opt_save:
         h2o.save_model(best_model, path="temp/best_GBM_model", filename=model_name, force=True)
-    print(best_model.actual_params)
+    # print(best_model.actual_params)
     fun.save_varimps(best_model, model_name)
     print("R2 : ", r2, "Seed", seed)
     r2s.append(float(r2))
 
 df_r2 = pd.DataFrame(r2s)
-print(best_model.actual_params)
+# print(best_model.actual_params)
 print('Mean all r2s', df_r2.mean())
 print(df_r2)
 

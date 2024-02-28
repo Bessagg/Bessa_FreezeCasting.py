@@ -9,6 +9,8 @@ warnings.filterwarnings("ignore")
 
 class DataParser:
     def __init__(self):
+        self.target = 'Porosity'
+        self.ratios = [0.8]
         self.selected_cols_all = ['name_part1', 'material',  # name_part2
                                   'name_fluid1', 'sublimated', 'technique', 'direction',
                                   'material_group',
@@ -27,7 +29,7 @@ class DataParser:
                                  'name_fluid1',  # 'sublimated', 'technique', 'direction',
                                  'material_group',
                                  'name_mold_mat',
-                                 'name_disp_1',
+                                 'name_disp_1', 'wf_disp_1',
                                  'name_bind1', 'wf_bind_1',
                                  'temp_cold', 'cooling_rate',
                                  'time_sub',
@@ -42,7 +44,31 @@ class DataParser:
 
         # Selected Cols:
         self.selected_cols = self.selected_cols_reduced
-        self.target = 'porosity'
+        self.col_dtypes = {'name_part1': 'enum', 'name_part2': 'enum', 'name_fluid1': 'enum',
+                           'name_mold_mat': 'enum',
+                           'name_disp_1': 'enum', 'wf_disp_1': 'numeric', 'name_bind1': 'enum', 'wf_bind_1': 'numeric',
+                           'material_group': 'enum', 'temp_cold': 'numeric', 'cooling_rate': 'numeric',
+                           'time_sub': 'numeric',
+                           'time_sinter_1': 'numeric', 'temp_sinter_1': 'numeric', 'vf_total': 'numeric',
+                           'porosity': 'numeric'}
+
+        self.col_dtypes_renamed = {'Solid Name': 'enum', 'Solid Name 2': 'enum', 'Fluid Name': 'enum',
+                                   'Mold Material Name': 'enum',
+                                   'Disp. Name': 'enum', 'Disp. wf.': 'numeric', 'Binder Name': 'enum',
+                                   'Binder wf.': 'numeric',
+                                   'Group': 'enum', 'Temp. Cold': 'numeric', 'Cooling Rate': 'numeric',
+                                   'Time Sub.': 'numeric',
+                                   'Time Sinter.': 'numeric', 'Temp Sinter': 'numeric', 'Solid Loading': 'numeric',
+                                   'Porosity': 'numeric'}
+
+        self.col_rename = {'name_part1': 'Solid Name', 'name_part2': 'Solid Name 2', 'name_fluid1': 'Fluid Name',
+                           'name_mold_mat': 'Mold Material Name',
+                           'name_disp_1': 'Disp. Name', 'wf_disp_1': 'Disp. wf.', 'name_bind1': 'Binder Name',
+                           'wf_bind_1': 'Binder wf.',
+                           'material_group': 'Group', 'temp_cold': 'Temp. Cold', 'cooling_rate': 'Cooling Rate',
+                           'time_sub': 'Time Sub.',
+                           'time_sinter_1': 'Time Sinter.', 'temp_sinter_1': 'Temp Sinter', 'vf_total': 'Solid Loading',
+                           'porosity': 'Porosity'}
 
         # technique', 'sublimated' only have one value / direction' only has 600 rows
 
@@ -70,20 +96,11 @@ class DataParser:
         df = df[df['sublimated'] != 'N']
         return df
 
-    def rename_columns(self, df):
-        df.rename(
-            columns={'name_part1': 'Solid Name', 'name_part2': 'Solid Name 2', 'material': 'Sample Name',  # name_part2
-                     'name_fluid1': 'Fluid Name', 'sublimated': 'Sublimated?', 'technique': 'Technique',
-                     'direction': 'F. Direction',
-                     'material_group': 'Group',
-                     'temp_cold': 'Temp. Cold', 'cooling_rate': 'Cooling Rate',
-                     'time_sub': "Time Sub",
-                     'time_sinter_1': 'Time Sinter', 'temp_sinter_1': 'Temp. Sinter', 'vf_total': 'Solid Loading',
-                     'porosity': 'porosity', 'name_disp_1': 'Disp. Name 1', 'name_bind_1': 'Binder Name', 'wf_bind_1': 'Binder wf.',
-                     'name_mold_mat': 'Mold Material Name'
+    def rename_columns_df(self, df):
+        return df.rename(columns=self.col_rename)
 
-                     }, inplace=True)
-        return df
+    def rename_columns_h2o(self, h2o_data):
+        return h2o_data.rename(self.col_rename)
 
 
 if __name__ == '__main__':

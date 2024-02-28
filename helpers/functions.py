@@ -8,12 +8,13 @@ def best_model_results(best_model, test, train):
     mrd = best_model.model_performance(test_data=test)['mean_residual_deviance']
 
     r2, mae, mrd = "{:.04f}".format(r2), "{:.04f}".format(mae), "{:.04f}".format(mrd)
+    r2_t = best_model.model_performance(test_data=train)['r2']
 
-    print("Mean residual deviance: ", mrd)
-    print("Mean average error: ", mae)
-    print("Pearson Coefficient R^2: ", r2)
-    print("Difference of r^2 train - test: ",
-          best_model.model_performance(test_data=train)['r2'] - best_model.model_performance(test_data=test)['r2'])
+    print("Test: Mean residual deviance: ", mrd)
+    print("Test: Mean average error: ", mae)
+    print("Test: Pearson Coefficient R^2: ", r2)
+    print("train: Pearson Coefficient R^2: ", r2_t)
+    print("Difference of r^2 train - test: ", "{:.04f}".format(r2_t - float(r2)))
     return r2, mae, mrd
 
 
@@ -29,7 +30,8 @@ def get_selected_model_from_each_folder(selected_models_path="selected_models"):
     selected_files = []
     # add files with highest [3] of each folder
     for folder in folders:
-        if not folder.__contains__('AutoML') or folder.__contains__('Stacked'):
+        # if not folder.__contains__('AutoML') or folder.__contains__('Stacked'):
+        if not folder.__contains__('Stacked'):
             files = os.listdir(os.path.join(selected_models_path, folder))
             if not files == []:
                 print(folder, files)
